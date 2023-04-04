@@ -1,0 +1,228 @@
+html {
+    --width_main_part:775px;
+    --left_menu_width: 215px;
+}
+@media(max-width: 2560px){
+    html{
+        --interface_left: 768px;
+    }
+}
+@media(max-width: 1920px){
+    html{
+        --interface_left: 448px;
+    }
+}
+@media(max-width: 1440px){
+    html{
+        --interface_left:208px;
+    }
+}
+@media(max-width: 1280px){
+    html{
+        --interface_left:128px;
+    }
+}
+@media(max-width: 1024px){
+    html{
+        --interface_left:4px;
+    }
+}
+.header{
+    z-index: 991;
+    position: fixed;
+    background-color: #e3f3ff;
+    display: block;
+    height: 48px;
+    width: 101vw;
+    left: -1%;
+    top:-1%;
+}
+.HeaderData{
+    position: relative;
+    left: calc(var(--interface_left) + 1% + 13px);
+    width: calc( var(--left_menu_width) + var(--width_main_part) + 5px);
+    letter-spacing: -0.36rem;
+}
+.div_button_hey{
+    letter-spacing:normal;
+    display: inline-block;
+    left: 5px;
+    position: relative;
+    width: 60px;
+    height: 35px;
+    top:4px;
+}
+.button_hey {
+    outline:none;
+    background-color: #e3f3ff;
+    display: inline-block;
+    position: relative;
+    width: 60px;
+    height: 35px;
+    text-align: left;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    font-size: 35px;
+    padding-top: 3px;
+}
+.MusicPrevLoad {
+    letter-spacing: normal;
+    height: 34px;
+    z-index: 990;
+    position: relative;
+    left: 470px;
+    width: 340px;
+    top: 11px;
+    border-radius: 4px;
+    background-color: lightgrey;
+    display: inline-block;
+}
+.ExitBtn {
+    letter-spacing:normal;
+    cursor: pointer;
+    display: inline-block;
+    width: 35px;
+    height: 35px;
+    position: relative;
+    top: 12px;
+    left: 560px;
+    outline: none;
+    outline: 0;
+    border-width: 0;
+    padding: 0;
+}
+.ExitBtn:hover{
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+.ExitButtonInHeader {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+}
+.exit_window {
+    letter-spacing: normal;
+    width:100%;
+    height:100%;
+    background-color:rgba(0,0,0,0.1);
+    position:fixed;
+    left:0;
+    top:0;
+    z-index:998;
+}
+.Interface {
+    display: block;
+    position: relative;
+    width: calc( var(--left_menu_width) + var(--width_main_part) + 5px);
+    left: var(--interface_left);
+}
+.left_menu {
+    background-color: #e3f3ff;
+    border-radius: 2px;
+    height: 90%;
+    width: 215px;
+    display: inline-block;
+    top: 50px;
+    flex-wrap: wrap;
+    position: fixed;
+    padding-right: 5px;
+}
+.button_message1 , .button_friends1, .button_groups1 , .button_communities1, .button_profile1{
+    background-color: #e3f3ff;
+    flex-wrap: wrap;
+    z-index: 900;
+    cursor: pointer;
+    height: 6.5%;
+    width: 10%;
+}
+.button_friends:hover, .button_communities:hover, .button_message:hover, .button_groups:hover, .button_profile:hover {
+    background-color: rgba(0, 0, 0, 0.4);
+    transition: all .4s ease;
+    height: 7%;
+    z-index: 31;
+    border-radius: 4px;
+    padding-top: 15%;
+}
+.button_message , .button_friends , .button_groups , .button_communities, .button_profile{
+    width: 205px;
+    z-index: 900;
+    padding: 10px 0 5px 5px;
+    height: 50px;
+    background-color: #e3f3ff;
+    font-size: 24px;
+    border: solid rgba(0,0,0,0);
+    cursor: pointer;
+    text-align: left;
+    position: relative;
+    display: block;
+}
+.MainPart {
+    border-radius: 2px;
+    width: 775px;
+    background-color: #e3f3ff;
+    overflow: hidden;
+    top: 43px;
+    height: calc(100vh - 55px);
+    position: relative;
+    left: 225px;
+    display: inline-block;
+}
+.MainPart:nth-child(1) {
+    position: relative;
+    top: 3px;
+}
+.PrevLoadMainPart_user {
+    height:  65px;
+    width: 765px;
+    position: relative;
+    left: 5px;
+    border-bottom: solid lightgrey 1px;
+    border-top: solid lightgrey 1px;
+    padding: 5px;
+}
+.PrevLoadMainPart_user__avatar {
+    display: inline-block;
+    position: relative;
+    left: 5px;
+    height: 55px;
+    width: 55px;
+    border-radius: 50%;
+    background-color: gray;
+}
+.PrevLoadMainPart_user__info {
+    left: 5px;
+    display: inline-block;
+    position: relative;
+}
+.PrevLoadMainPart_user__info___top {
+    background-color: gray;
+    width: 680px;
+    border-radius: 10px;
+    height: 20px;
+}
+.PrevLoadMainPart_user__info___buttons {
+    width: 600px;
+    height: 20px;
+    position: relative;
+    top: 8px;
+    padding: 5px 0;
+}
+.PrevLoadMainPart_user__info___button {
+    display: inline-block;
+    width: 200px;
+    height: 25px;
+    border-radius: 10px;
+    background-color: gray;
+}
+.PrevLoadMessage {
+    position: fixed;
+    right: 10px;
+    bottom: 10px;
+    font-size: 24px;
+    padding: 8px;
+    color: white;
+    background-color: lightgrey;
+    border-radius: 4px;
+    height: 50px;
+    width: 200px;
+}

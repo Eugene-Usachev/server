@@ -1,0 +1,155 @@
+.switch{
+    display: inline-block;
+    position: relative;
+    top:17px;
+    width: 40px;
+    left: 20px;
+    transform: translate(-50%, -50%);
+    -webkit-appearance: none;
+    background: #c6c6c6;
+    border-radius: 20px;
+    height: 20px;
+    transition: .5s;
+    box-shadow: inset 0 0 0 5px rgba(0, 0, 0, .2);
+}
+.switch:checked{
+    background: #40e551;
+}
+.switch::before{
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 20px;
+    top:0;
+    left:0;
+    background: #fff;
+    transition: .5s;
+    transform: scale(1.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .2);
+}
+.switch:checked::before{
+    left: 20px;
+}
+.DivForInput_radio {
+    display: inline-block;
+    cursor: pointer;
+    width: 48px;
+    position: relative;
+    height: 48px;
+    background-color: gray;
+    border-radius: 4px 0 0 4px;
+}
+.DivForInput_radio__inside {
+    cursor: pointer;
+    width: 16px;
+    position: relative;
+    background-color: white;
+    left: 16px;
+    top: 16px;
+    border-radius: 50%;
+    height: 16px;
+}
+.DivForInput_radio__inside1 {
+    cursor: pointer;
+    width: 14px;
+    position: relative;
+    background-color: white;
+    top: 1px;left:1px;
+    border-radius: 50%;
+    height: 14px;
+}
+.InputInLogInWindow {
+    border: 1px solid grey;
+    transition: ease, all, 1s;
+    border-radius: 0 4px 4px 0;
+    display: inline-block;
+    width: 500px;
+}
+.DivForInput {
+    height: 40px;
+    width: 546px;
+    transition: ease, all, .2s;
+    border-radius: 4px;
+}
+.DivForLogin {
+    height: 40px;
+    width: 546px;
+    transition: ease, all, .2s;
+    border-radius: 4px;
+}
+.DivForLogin .InputInLogInWindow {
+    border: 1px solid grey;
+    width: 540px;
+    transition: ease, all, 1s;
+    border-radius: 4px;
+    display: inline-block;
+}
+.DivForInput:hover{
+    border: 4px lightblue solid;
+}
+.DivForLogin:hover{
+    border: 4px lightblue solid;
+}
+.DivForInput:hover .InputInLogInWindow{
+    border-radius: 0;
+}
+.DivForInput:hover .DivForInput_radio{
+    border-radius: 0;
+}
+.DivForLogin:hover .InputInLogInWindow{
+    border-radius: 0;
+}
+.ButtonLogin {
+    position: relative;
+    left: 476px;
+    font-size: 24px;
+    cursor: pointer;
+    background-color: lightgray;
+    width: 65px;
+    padding: 1px 2px;
+    border-radius: 4px;
+}
+.SignUpFormR {
+    display: none;
+}
+.InputInLogInWindowR {
+    border: 1px solid grey;
+    transition: ease, all, .2s;
+    border-radius: 4px;
+    display: inline-block;
+    width: 540px;
+    left: 1px;
+    position: relative;
+}
+.DivForInputR {
+    height: 56px;
+    width: 547px;
+    transition: ease, all, .2s;
+    border-radius: 4px;
+}
+.DivForInputR:hover{
+    height: 66px;
+    width: 560px;
+}
+.DivForInputR:hover .InputInLogInWindowR{
+    border: 4px lightblue solid;
+    border-radius: 4px;
+}
+.SignUpBtnR {
+    position: relative;
+    font-size: 22px;
+    width: 186px;
+    padding: 1px 2px;
+    background-color: lightgrey;
+    border-radius: 4px;
+    cursor: pointer;
+    left: 356px;
+}
+.ErrR {
+    position: relative;
+    left: 5px;
+    letter-spacing: normal;
+    color:red;
+    font-size: 14px;
+}

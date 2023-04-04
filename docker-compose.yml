@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  postgres:
+    restart: always
+    image: postgres:13-alpine
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: db_create.go
+      POSTGRES_DB: hey
+    ports:
+      - "5436:5432"
+
+  app:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+    ports:
+      - "4040:4040"
+    environment:
+      DB_HOST: postgres
+      DB_PASSWORD: db_create.go
+      DB_USERNAME: postgres
+      DB_PORT: 5432
+      DB_NAME: hey
+      SSL_MODE: disable
+      CORES: "5"
+      SALT: uipads0797Wy
+      JWT_SECRET_KEY: pz1xvp44cMoca1dmf9HJfa
+      JWT_SECRET_KEY_FOR_LONGLIVE_TOKEN: zp1mvn65cmOca1hgf9HJfa
+      MAX_FILE_SIZE: "66060288"
+      GIN_MODE: release
+      #remove GIN_MODE: release
+    volumes:
+      - type: bind
+        source: ./data
+        target: /root/data
