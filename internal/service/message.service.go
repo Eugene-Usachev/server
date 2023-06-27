@@ -16,15 +16,15 @@ func NewMessageService(repository repository.Message) *MessageService {
 	}
 }
 
-func (service *MessageService) SaveMessage(ctx context.Context, userId int64, messageDTO Entities.MessageDTO) (int64, []int64, string, error) {
+func (service *MessageService) SaveMessage(ctx context.Context, userId uint, messageDTO Entities.MessageDTO) (uint, []uint, string, error) {
 	messageDTO.Date = NewDate()
 	id, members, err := service.repository.SaveMessage(ctx, userId, messageDTO)
 	return id, members, messageDTO.Date, err
 }
-func (service *MessageService) UpdateMessage(ctx context.Context, messageId int64, userId int64, newData string) ([]int64, error) {
+func (service *MessageService) UpdateMessage(ctx context.Context, messageId uint, userId uint, newData string) ([]uint, error) {
 	return service.repository.UpdateMessage(ctx, messageId, userId, newData)
 }
-func (service *MessageService) DeleteMessage(ctx context.Context, messageId int64, userId int64) ([]int64, error) {
+func (service *MessageService) DeleteMessage(ctx context.Context, messageId uint, userId uint) ([]uint, error) {
 	return service.repository.DeleteMessage(ctx, messageId, userId)
 }
 

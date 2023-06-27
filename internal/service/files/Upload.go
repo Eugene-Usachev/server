@@ -3,8 +3,7 @@ package files
 import (
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"log"
+	"github.com/gofiber/fiber/v2"
 	"mime"
 	"mime/multipart"
 	"os"
@@ -30,7 +29,7 @@ func IsFileMusic(file *multipart.FileHeader) bool {
 	}
 }
 
-func UploadFile(ctx *gin.Context, file *multipart.FileHeader, path string) (string, error) {
+func UploadFile(ctx *fiber.Ctx, file *multipart.FileHeader, path string) (string, error) {
 	return "", nil
 	if file.Size > FileMaxSize {
 		return "", errors.New("file too large")
@@ -57,24 +56,23 @@ func UploadFile(ctx *gin.Context, file *multipart.FileHeader, path string) (stri
 		}
 	}
 
-	err = ctx.SaveUploadedFile(file, path+file.Filename)
+	err = ctx.SaveFile(file, path+file.Filename)
 	if err != nil {
 		return "", err
 	}
 	return file.Filename, nil
 }
 
-func UploadPostFiles(c *gin.Context) ([]string, error) {
+func UploadPostFiles(c *fiber.Ctx) ([]string, error) {
 	return []string{""}, nil
 	//form, err := c.MultipartForm()
 	return nil, nil
 }
 
-func UploadImage(c *gin.Context, path string) (string, error) {
+func UploadImage(c *fiber.Ctx, path string) (string, error) {
 	return "", nil
 	userAvatar, err := c.FormFile("avatar")
 	if err != nil || userAvatar == nil {
-		log.Println(err.Error())
 		return "", err
 	}
 	if userAvatar.Size > FileMaxSize {
@@ -106,8 +104,8 @@ func UploadImage(c *gin.Context, path string) (string, error) {
 		}
 	}
 
-	err = c.SaveUploadedFile(userAvatar, path+userAvatar.Filename)
-	err = c.SaveUploadedFile(userAvatar, path+userAvatar.Filename)
+	err = c.SaveFile(userAvatar, path+userAvatar.Filename)
+	err = c.SaveFile(userAvatar, path+userAvatar.Filename)
 	if err != nil {
 		return "", err
 	}

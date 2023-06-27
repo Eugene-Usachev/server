@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 	"mime/multipart"
 	"path/filepath"
 	"time"
@@ -30,7 +30,7 @@ func NewDate() string {
 
 /*region post*/
 
-func (service *PostService) CreateAPost(ctx *gin.Context, id uint, postDTO Entities.CreateAPostDTO, surveyDTO Entities.CreateASurveyDTO, files []*multipart.FileHeader) error {
+func (service *PostService) CreatePost(ctx *fiber.Ctx, id uint, postDTO Entities.CreateAPostDTO, surveyDTO Entities.CreateASurveyDTO, files []*multipart.FileHeader) error {
 	path := fmt.Sprintf("./static/UserFiles/%d/", id)
 	var (
 		postFiles []string
@@ -65,7 +65,7 @@ func (service *PostService) CreateAPost(ctx *gin.Context, id uint, postDTO Entit
 	}
 
 	postDTO.Files = postFiles
-	return service.repository.CreateAPost(ctx.Request.Context(), id, postDTO, surveyDTO, NewDate())
+	return service.repository.CreateAPost(ctx.Context(), id, postDTO, surveyDTO, NewDate())
 }
 
 func (service *PostService) GetPostsByUserID(ctx context.Context, userID uint, offset uint) ([]Entities.Post, []Entities.Survey, error) {

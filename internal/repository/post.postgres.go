@@ -5,18 +5,17 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"strconv"
 )
 
 type PostPostgres struct {
-	database *pgxpool.Pool
+	dataBases *DataBases
 }
 
-func NewPostPostgres(db *pgxpool.Pool) *PostPostgres {
+func NewPostPostgres(dataBases *DataBases) *PostPostgres {
 	return &PostPostgres{
-		database: db,
+		dataBases: dataBases,
 	}
 }
 
@@ -26,7 +25,7 @@ func (repository *PostPostgres) CreateAPost(ctx context.Context, id uint, postDT
 	var (
 		postId uint
 	)
-	row := repository.database.QueryRow(ctx, `INSERT INTO posts (parent_user_id, data, date, files, have_a_survey) VALUES ($1, $2, $5, $3, $4) RETURNING id`,
+	row := repository.dataBases.Postgres.QueryRow(ctx, `INSERT INTO posts (parent_user_id, data, date, files, have_a_survey) VALUES ($1, $2, $5, $3, $4) RETURNING id`,
 		id, postDTO.Data, postDTO.Files, postDTO.HaveASurvey, date)
 	err := row.Scan(&postId)
 	if err != nil {
@@ -34,7 +33,7 @@ func (repository *PostPostgres) CreateAPost(ctx context.Context, id uint, postDT
 	}
 
 	if postDTO.HaveASurvey {
-		_, err = repository.database.Exec(ctx, `INSERT INTO surveys (parent_post_id, data, background, is_multivoices) VALUES ($1, $2, $3, $4)`,
+		_, err = repository.dataBases.Postgres.Exec(ctx, `INSERT INTO surveys (parent_post_id, data, background, is_multivoices) VALUES ($1, $2, $3, $4)`,
 			postId, surveyDTO.Data, surveyDTO.Background, surveyDTO.IsMultiVoices)
 	}
 
@@ -43,7 +42,7 @@ func (repository *PostPostgres) CreateAPost(ctx context.Context, id uint, postDT
 
 func (repository *PostPostgres) GetPostsByUserID(ctx context.Context, userID uint, offset uint) ([]Entities.Post, []Entities.Survey, error) {
 
-	rows, err := repository.database.Query(ctx, `SELECT id, likes, liked_by, dislikes, disliked_by, data, date, files, have_a_survey
+	rows, err := repository.dataBases.Postgres.Query(ctx, `SELECT id, likes, liked_by, dislikes, disliked_by, data, date, files, have_a_survey
 		FROM posts WHERE parent_user_id = $1 ORDER BY id DESC LIMIT 20 OFFSET $2`, userID, offset)
 	if err != nil {
 		return []Entities.Post{}, []Entities.Survey{}, err
@@ -96,7 +95,7 @@ func (repository *PostPostgres) GetPostsByUserID(ctx context.Context, userID uin
 		array = array[:len(array)-1] + ")"
 		query := `SELECT parent_post_id, data, sl0v, sl1v, sl2v, sl3v, sl4v, sl5v, sl6v, sl7v, sl8v, sl9v, sl0vby, sl1vby, sl2vby, sl3vby, sl4vby, sl5vby, sl6vby, sl7vby, sl8vby, sl9vby, voted_by, background, is_multivoices
 			FROM surveys WHERE parent_post_id IN ` + array
-		rows, err = repository.database.Query(ctx, query)
+		rows, err = repository.dataBases.Postgres.Query(ctx, query)
 		if err != nil {
 			return posts, []Entities.Survey{}, err
 		}
@@ -151,7 +150,7 @@ func (repository *PostPostgres) GetPostsByUserID(ctx context.Context, userID uin
 }
 
 func (repository *PostPostgres) LikePost(ctx context.Context, userId, postId uint) error {
-	_, err := repository.database.Exec(ctx, `UPDATE posts 
+	_, err := repository.dataBases.Postgres.Exec(ctx, `UPDATE posts 
 		SET likes=likes+1, liked_by=array_append(liked_by, $1)
 		WHERE id=$2 AND NOT $1=ANY(liked_by) AND NOT $1=ANY(disliked_by)
 	`, userId, postId)
@@ -160,7 +159,7 @@ func (repository *PostPostgres) LikePost(ctx context.Context, userId, postId uin
 }
 
 func (repository *PostPostgres) UnlikePost(ctx context.Context, userId, postId uint) error {
-	_, err := repository.database.Exec(ctx, `UPDATE posts 
+	_, err := repository.dataBases.Postgres.Exec(ctx, `UPDATE posts 
 		SET likes=likes-1, liked_by=array_remove(liked_by, $1)
 		WHERE id=$2 AND $1=ANY(liked_by)
 	`, userId, postId)
@@ -169,7 +168,7 @@ func (repository *PostPostgres) UnlikePost(ctx context.Context, userId, postId u
 }
 
 func (repository *PostPostgres) DislikePost(ctx context.Context, userId, postId uint) error {
-	_, err := repository.database.Exec(ctx, `UPDATE posts 
+	_, err := repository.dataBases.Postgres.Exec(ctx, `UPDATE posts 
 		SET dislikes=dislikes+1, disliked_by=array_append(disliked_by, $1)
 		WHERE id=$2 AND NOT $1=ANY(liked_by) AND NOT $1=ANY(disliked_by)
 	`, userId, postId)
@@ -178,7 +177,7 @@ func (repository *PostPostgres) DislikePost(ctx context.Context, userId, postId 
 }
 
 func (repository *PostPostgres) UndislikePost(ctx context.Context, userId, postId uint) error {
-	_, err := repository.database.Exec(ctx, `UPDATE posts 
+	_, err := repository.dataBases.Postgres.Exec(ctx, `UPDATE posts 
 		SET dislikes=dislikes-1, disliked_by=array_remove(disliked_by, $1)
 		WHERE id=$2 AND $1=ANY(disliked_by)
 	`, userId, postId)
@@ -187,7 +186,7 @@ func (repository *PostPostgres) UndislikePost(ctx context.Context, userId, postI
 }
 
 func (repository *PostPostgres) DeletePost(ctx context.Context, userId, postId uint) error {
-	_, err := repository.database.Exec(ctx, "DELETE FROM posts WHERE id = $1 AND parent_user_id=$2", postId, userId)
+	_, err := repository.dataBases.Postgres.Exec(ctx, "DELETE FROM posts WHERE id = $1 AND parent_user_id=$2", postId, userId)
 	return err
 }
 
@@ -196,7 +195,7 @@ func (repository *PostPostgres) DeletePost(ctx context.Context, userId, postId u
 /*region comments*/
 
 func (repository *PostPostgres) GetCommentsByPostId(ctx context.Context, postId uint, offset uint) ([]Entities.Comment, error) {
-	rows, err := repository.database.Query(ctx, `
+	rows, err := repository.dataBases.Postgres.Query(ctx, `
         SELECT id, parent_post_id, data, date, parent_user_id, likes, likes_by, dislikes, dislikes_by, files, parent_comment_id
         FROM comments
         WHERE parent_post_id = $1
@@ -222,11 +221,11 @@ func (repository *PostPostgres) GetCommentsByPostId(ctx context.Context, postId 
 func (repository *PostPostgres) CreateComment(ctx context.Context, userId uint, comment Entities.CommentDTO, date string) (commentId uint, err error) {
 	var row pgx.Row
 	if comment.ParentCommentId > 1 {
-		row = repository.database.QueryRow(ctx, `INSERT INTO comments (parent_post_id, data, date, parent_user_id, files, parent_comment_id)
+		row = repository.dataBases.Postgres.QueryRow(ctx, `INSERT INTO comments (parent_post_id, data, date, parent_user_id, files, parent_comment_id)
 			VALUES ($1, $2, $6, $3, $4, $5) RETURNING id`,
 			comment.ParentPostID, comment.Data, userId, comment.Files, comment.ParentCommentId, date)
 	} else {
-		row = repository.database.QueryRow(ctx, `INSERT INTO comments (parent_post_id, data, date, parent_user_id, files)
+		row = repository.dataBases.Postgres.QueryRow(ctx, `INSERT INTO comments (parent_post_id, data, date, parent_user_id, files)
 			VALUES ($1, $2, $5, $3, $4) RETURNING id`,
 			comment.ParentPostID, comment.Data, userId, comment.Files, date)
 	}
@@ -238,7 +237,7 @@ func (repository *PostPostgres) CreateComment(ctx context.Context, userId uint, 
 }
 
 func (repository *PostPostgres) LikeComment(ctx context.Context, userID uint, commentID uint) error {
-	_, err := repository.database.Exec(ctx, `UPDATE comments 
+	_, err := repository.dataBases.Postgres.Exec(ctx, `UPDATE comments 
 		SET likes = likes + 1, likes_by = array_append(likes_by, $1)
 		WHERE id = $2 AND NOT $1 = ANY(likes_by) AND NOT $1 = ANY(dislikes_by)
 	`, userID, commentID)
@@ -246,7 +245,7 @@ func (repository *PostPostgres) LikeComment(ctx context.Context, userID uint, co
 }
 
 func (repository *PostPostgres) UnlikeComment(ctx context.Context, userID uint, commentID uint) error {
-	_, err := repository.database.Exec(ctx, `UPDATE comments 
+	_, err := repository.dataBases.Postgres.Exec(ctx, `UPDATE comments 
 		SET likes = likes - 1, likes_by = array_remove(likes_by, $1)
 		WHERE id = $2 AND $1 = ANY(likes_by)
 	`, userID, commentID)
@@ -254,7 +253,7 @@ func (repository *PostPostgres) UnlikeComment(ctx context.Context, userID uint, 
 }
 
 func (repository *PostPostgres) DislikeComment(ctx context.Context, userID uint, commentID uint) error {
-	_, err := repository.database.Exec(ctx, `UPDATE comments 
+	_, err := repository.dataBases.Postgres.Exec(ctx, `UPDATE comments 
 		SET dislikes = dislikes + 1, dislikes_by = array_append(dislikes_by, $1)
 		WHERE id = $2 AND NOT $1 = ANY(likes_by) AND NOT $1 = ANY(dislikes_by)
 	`, userID, commentID)
@@ -262,7 +261,7 @@ func (repository *PostPostgres) DislikeComment(ctx context.Context, userID uint,
 }
 
 func (repository *PostPostgres) UndislikeComment(ctx context.Context, userID uint, commentID uint) error {
-	_, err := repository.database.Exec(ctx, `UPDATE comments 
+	_, err := repository.dataBases.Postgres.Exec(ctx, `UPDATE comments 
 		SET dislikes = dislikes - 1, dislikes_by = array_remove(dislikes_by, $1)
 		WHERE id = $2 AND $1 = ANY(dislikes_by)
 	`, userID, commentID)
@@ -270,7 +269,7 @@ func (repository *PostPostgres) UndislikeComment(ctx context.Context, userID uin
 }
 
 func (repository *PostPostgres) UpdateComment(ctx context.Context, userID uint, commentID uint, updateDTO Entities.CommentUpdateDTO) error {
-	_, err := repository.database.Exec(ctx, `UPDATE comments 
+	_, err := repository.dataBases.Postgres.Exec(ctx, `UPDATE comments 
 		SET data = $1, files = $2 
 		WHERE id = $3 AND parent_user_id = $4
 	`, updateDTO.Data, updateDTO.Files, commentID, userID)
@@ -278,7 +277,7 @@ func (repository *PostPostgres) UpdateComment(ctx context.Context, userID uint, 
 }
 
 func (repository *PostPostgres) DeleteComment(ctx context.Context, userID uint, commentID uint) error {
-	_, err := repository.database.Exec(ctx, `DELETE FROM comments 
+	_, err := repository.dataBases.Postgres.Exec(ctx, `DELETE FROM comments 
 		WHERE id = $1 AND parent_user_id = $2
 	`, commentID, userID)
 	return err
@@ -294,7 +293,7 @@ func (repository *PostPostgres) VoteInSurvey(ctx context.Context, userId uint, s
 		votedForForPostgres = votedForForPostgres + "sl" + strconv.Itoa(int(v)) + "v=sl" + strconv.Itoa(int(v)) + "v+1," + "sl" + strconv.Itoa(int(v)) + "vby=array_append(sl" + strconv.Itoa(int(v)) + "vby, $1),"
 	}
 	query := `UPDATE surveys SET ` + votedForForPostgres + ` voted_by = array_append(voted_by, $1) WHERE parent_post_id = $2 AND NOT $1 = ANY(voted_by)`
-	_, err := repository.database.Exec(ctx, query, userId, surveyId)
+	_, err := repository.dataBases.Postgres.Exec(ctx, query, userId, surveyId)
 	return err
 }
 

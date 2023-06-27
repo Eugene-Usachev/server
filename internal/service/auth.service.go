@@ -3,87 +3,127 @@ package service
 import (
 	"GoServer/Entities"
 	"GoServer/internal/repository"
-	"GoServer/pkg/jwt"
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
+	"errors"
 	"fmt"
+	"github.com/Eugene-Usachev/fastbytes"
+	"github.com/Eugene-Usachev/fst"
+	"hash"
 	"os"
+	"sync"
 )
 
 type AuthService struct {
-	repository repository.Authorization
+	repository       repository.Authorization
+	accessConverter  *fst.Converter
+	refreshConverter *fst.Converter
 }
 
-func NewAuthService(repository repository.Authorization) *AuthService {
+type AuthServiceConfig struct {
+	repository       repository.Authorization
+	accessConverter  *fst.Converter
+	refreshConverter *fst.Converter
+}
+
+func NewAuthService(cfg *AuthServiceConfig) *AuthService {
 	return &AuthService{
-		repository: repository,
+		repository:       cfg.repository,
+		accessConverter:  cfg.accessConverter,
+		refreshConverter: cfg.refreshConverter,
 	}
 }
 
-func (services *AuthService) CreateUser(ctx context.Context, user Entities.UserDTO) (uint, error, jwt.LongliveAndAccessTokens) {
+func (services *AuthService) CreateUser(ctx context.Context, user Entities.UserDTO) (uint, error, Entities.AllTokenResponse) {
 	user.Password = generatePasswordHash(user.Password)
-	longliveToken, err := jwt.NewLongliveToken(user.Password)
-	if err != nil {
-		return 0, err, jwt.LongliveAndAccessTokens{}
-	}
 	id, err := services.repository.CreateUser(ctx, user)
 	if err != nil {
-		return 0, err, jwt.LongliveAndAccessTokens{}
+		return 0, err, Entities.AllTokenResponse{}
 	}
-	accessToken, err := jwt.NewAccessToken(id)
-	if err != nil {
-		return 0, err, jwt.LongliveAndAccessTokens{}
-	}
+	var tokens Entities.AllTokenResponse
+	tokens.AccessToken = services.accessConverter.NewToken(fastbytes.U2B(id))
+	tokens.RefreshToken = services.refreshConverter.NewToken(fastbytes.S2B(user.Password))
 
-	return id, nil, jwt.LongliveAndAccessTokens{
-		AccessToken:   accessToken,
-		LongliveToken: longliveToken,
-	}
+	return id, nil, tokens
 }
 
-func (services *AuthService) SignIn(ctx context.Context, input Entities.SignInDTO) (uint, string, string, string, string, error) {
+func (services *AuthService) SignIn(ctx context.Context, input Entities.SignInDTO) (Entities.SignInReturnDTO, Entities.AllTokenResponse, error) {
 
 	input.Password = generatePasswordHash(input.Password)
 	user, err := services.repository.SignInUser(ctx, input)
 	if err != nil {
-		return 0, "", "", "", "", err
+		return Entities.SignInReturnDTO{}, Entities.AllTokenResponse{}, err
 	}
-	accessToken, err := jwt.NewAccessToken(user.ID)
+	var tokens Entities.AllTokenResponse
+	tokens.AccessToken = services.accessConverter.NewToken(fastbytes.U2B(user.ID))
+	tokens.RefreshToken = services.refreshConverter.NewToken(fastbytes.S2B(input.Password))
 	if err != nil {
-		return 0, "", "", "", "", err
+		return Entities.SignInReturnDTO{}, Entities.AllTokenResponse{}, err
 	}
 
-	longliveToken, err := jwt.NewLongliveToken(input.Password)
-	if err != nil {
-		return 0, "", "", "", "", err
-	}
-
-	return user.ID, user.Email, user.Login, accessToken, longliveToken, nil
+	return user, tokens, nil
 
 }
 
-func (services *AuthService) RefreshToken(ctx context.Context, password, email string) (uint, string, string, error) {
-
-	id, err := services.repository.RefreshTokens(ctx, email, password)
-	if err != nil {
-		return 0, "", "", err
-	}
-
-	accessToken, err := jwt.NewAccessToken(id)
-	if err != nil {
-		return 0, "", "", err
-	}
-	longliveToken, err := jwt.NewLongliveToken(password)
-	if err != nil {
-		return 0, "", "", err
-	}
-
-	return id, accessToken, longliveToken, err
+func (services *AuthService) Check(ctx context.Context, email, login string) (isEmailNotBusy, isLoginNotBusy bool) {
+	return services.repository.Check(ctx, email, login)
 }
+
+var (
+	invalidTokenError = errors.New("invalid token")
+)
+
+func (services *AuthService) Refresh(ctx context.Context, id uint, refreshToken string) (Entities.RefreshResponseDTO, error) {
+	passwordHash, err := services.refreshConverter.ParseToken(refreshToken)
+	if err != nil {
+		return Entities.RefreshResponseDTO{}, err
+	}
+	if len(passwordHash) == 0 {
+		return Entities.RefreshResponseDTO{}, invalidTokenError
+	}
+	var dto Entities.RefreshResponseDTO
+	dto, err = services.repository.Refresh(ctx, id, fastbytes.B2S(passwordHash))
+	if err != nil {
+		return Entities.RefreshResponseDTO{}, err
+	}
+	dto.AccessToken = services.accessConverter.NewToken(fastbytes.U2B(id))
+	dto.RefreshToken = services.refreshConverter.NewToken(passwordHash)
+	return dto, nil
+}
+
+func (services *AuthService) RefreshTokens(ctx context.Context, id uint, refreshToken string) (Entities.AllTokenResponse, error) {
+	passwordHash, err := services.refreshConverter.ParseToken(refreshToken)
+	if err != nil {
+		return Entities.AllTokenResponse{}, err
+	}
+	if len(passwordHash) == 0 {
+		return Entities.AllTokenResponse{}, invalidTokenError
+	}
+	err = services.repository.CheckPassword(ctx, id, fastbytes.B2S(passwordHash))
+	if err != nil {
+		return Entities.AllTokenResponse{}, err
+	}
+	var dto Entities.AllTokenResponse
+	dto.AccessToken = services.accessConverter.NewToken(fastbytes.U2B(id))
+	dto.RefreshToken = services.refreshConverter.NewToken(passwordHash)
+	return dto, nil
+}
+
+var (
+	SALT     = fastbytes.S2B(os.Getenv("SALT"))
+	hashPool = sync.Pool{
+		New: func() interface{} {
+			return sha256.New()
+		},
+	}
+)
 
 func generatePasswordHash(password string) string {
-	hash := sha1.New()
-	hash.Write([]byte(password))
-
-	return fmt.Sprintf("%x", hash.Sum([]byte(os.Getenv("SALT"))))
+	sha := hashPool.Get().(hash.Hash)
+	sha.Reset()
+	defer func() {
+		hashPool.Put(sha)
+	}()
+	sha.Write(fastbytes.S2B(password))
+	return fmt.Sprintf("%x", sha.Sum(nil))
 }

@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 )
 
 type UserService struct {
@@ -20,8 +20,12 @@ func NewUserService(repository repository.User) *UserService {
 	}
 }
 
-func (service *UserService) GetUserById(ctx context.Context, id uint, requestOwnerId uint) (Entities.GetUserDTO, []int64, error) {
-	return service.repository.GetUserById(ctx, id, requestOwnerId)
+func (service *UserService) GetUserById(ctx context.Context, id uint) (Entities.GetUserDTO, error) {
+	return service.repository.GetUserById(ctx, id)
+}
+
+func (service *UserService) GetUserSubsIds(ctx context.Context, id uint) ([]uint, error) {
+	return service.repository.GetUserSubsIds(ctx, id)
 }
 
 func (service *UserService) GetFriendsAndSubs(ctx context.Context, clientId, userId uint) (Entities.GetFriendsAndSubsDTO, error) {
@@ -32,7 +36,7 @@ func (service *UserService) UpdateUser(ctx context.Context, id uint, UpdateUserD
 	return service.repository.UpdateUser(ctx, id, UpdateUserDTO)
 }
 
-func (service *UserService) ChangeAvatar(ctx *gin.Context, userId uint) (string, error) {
+func (service *UserService) ChangeAvatar(ctx *fiber.Ctx, userId uint) (string, error) {
 	path := fmt.Sprintf("./static/UserFiles/%d/Image/", userId)
 
 	fileName, err := files.UploadImage(ctx, path)
@@ -40,7 +44,7 @@ func (service *UserService) ChangeAvatar(ctx *gin.Context, userId uint) (string,
 		return "", err
 	}
 
-	err = service.repository.ChangeAvatar(ctx.Request.Context(), userId, fileName)
+	err = service.repository.ChangeAvatar(ctx.Context(), userId, fileName)
 	if err != nil {
 		return "", errors.New("impossible to change avatar")
 	}
@@ -74,4 +78,16 @@ func (service *UserService) GetUsers(ctx context.Context, idOfUsers string) ([]E
 
 func (service *UserService) GetUsersForFriendsPage(ctx context.Context, idOfUsers string) ([]Entities.FriendUser, error) {
 	return service.repository.GetUsersForFriendsPage(ctx, idOfUsers)
+}
+
+func (service *UserService) GetOnlineUsers(ctx context.Context, slice []string) ([]int, error) {
+	// TODO
+	panic("implement me")
+	return nil, nil
+}
+
+func (service *UserService) SubscribeOnUsers(ctx context.Context, slice []string, clientId string) error {
+	// TODO
+	panic("implement me")
+	return nil
 }

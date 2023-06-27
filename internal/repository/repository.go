@@ -4,16 +4,21 @@ import (
 	"GoServer/Entities"
 	"context"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/rueidis"
 )
 
 type Authorization interface {
 	CreateUser(ctx context.Context, user Entities.UserDTO) (uint, error)
 	SignInUser(ctx context.Context, input Entities.SignInDTO) (Entities.SignInReturnDTO, error)
 	RefreshTokens(ctx context.Context, email, password string) (uint, error)
+	Check(ctx context.Context, email, login string) (isEmailNotBusy, isLoginNotBusy bool)
+	Refresh(ctx context.Context, id uint, password string) (dto Entities.RefreshResponseDTO, err error)
+	CheckPassword(ctx context.Context, id uint, password string) error
 }
 
 type User interface {
-	GetUserById(ctx context.Context, id uint, requestOwnerId uint) (Entities.GetUserDTO, []int64, error)
+	GetUserById(ctx context.Context, id uint) (Entities.GetUserDTO, error)
+	GetUserSubsIds(ctx context.Context, id uint) ([]uint, error)
 	GetFriendsAndSubs(ctx context.Context, clientId, userId uint) (Entities.GetFriendsAndSubsDTO, error)
 	UpdateUser(ctx context.Context, id uint, UpdateUserDTO Entities.UpdateUserDTO) error
 	ChangeAvatar(ctx context.Context, id uint, fileName string) error
@@ -54,19 +59,19 @@ type Post interface {
 }
 
 type Message interface {
-	SaveMessage(ctx context.Context, userId int64, messageDTO Entities.MessageDTO) (int64, []int64, error)
-	UpdateMessage(ctx context.Context, messageId, userId int64, newData string) ([]int64, error)
-	DeleteMessage(ctx context.Context, messageId, userId int64) ([]int64, error)
+	SaveMessage(ctx context.Context, userId uint, messageDTO Entities.MessageDTO) (uint, []uint, error)
+	UpdateMessage(ctx context.Context, messageId, userId uint, newData string) ([]uint, error)
+	DeleteMessage(ctx context.Context, messageId, userId uint) ([]uint, error)
 	GetLastMessages(ctx context.Context, userId uint, chatsId string) ([]Entities.Message, error)
 	GetMessages(ctx context.Context, chatId, offset uint) ([20]Entities.Message, error)
 }
 
 type Chat interface {
-	CreateChat(ctx context.Context, chatDTO Entities.ChatDTO) (int64, error)
-	UpdateChat(ctx context.Context, userId, chatId int64, chatDTO Entities.ChatUpdateDTO) error
-	DeleteChat(ctx context.Context, userId, chatId int64) ([]int64, error)
-	GetChats(ctx context.Context, userId int64) (string, string, string, []int64, []int64, string, []Entities.Chat, error)
-	UpdateChatLists(ctx context.Context, id int64, newChatLists string) error
+	CreateChat(ctx context.Context, chatDTO Entities.ChatDTO) (uint, error)
+	UpdateChat(ctx context.Context, userId, chatId uint, chatDTO Entities.ChatUpdateDTO) error
+	DeleteChat(ctx context.Context, userId, chatId uint) ([]uint, error)
+	GetChats(ctx context.Context, userId uint) (string, string, string, []uint, []uint, string, []Entities.Chat, error)
+	UpdateChatLists(ctx context.Context, id uint, newChatLists string) error
 }
 
 type Music interface {
@@ -84,13 +89,25 @@ type Repository struct {
 	Chat
 }
 
-func NewRepository(pool *pgxpool.Pool) *Repository {
+type DataBases struct {
+	Postgres *pgxpool.Pool
+	Redis    *rueidis.Client
+}
+
+func NewDataBases(pool *pgxpool.Pool, redis *rueidis.Client) *DataBases {
+	return &DataBases{
+		Postgres: pool,
+		Redis:    redis,
+	}
+}
+
+func NewRepository(dataBases *DataBases) *Repository {
 	return &Repository{
-		Authorization: NewAuthPostgres(pool),
-		User:          NewUserPostgres(pool),
-		Music:         NewMusicPostgres(pool),
-		Post:          NewPostPostgres(pool),
-		Chat:          NewChatPostgres(pool),
-		Message:       NewMessagePostgres(pool),
+		Authorization: NewAuthPostgres(dataBases),
+		User:          NewUserPostgres(dataBases),
+		Music:         NewMusicPostgres(dataBases),
+		Post:          NewPostPostgres(dataBases),
+		Chat:          NewChatPostgres(dataBases),
+		Message:       NewMessagePostgres(dataBases),
 	}
 }

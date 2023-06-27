@@ -1,38 +1,59 @@
 package server
 
 import (
-	"context"
+	"GoServer/internal/handler"
+	"GoServer/internal/service/files"
+	"GoServer/internal/websocket"
+	"github.com/goccy/go-json"
+	"github.com/gofiber/fiber/v2"
 	"log"
-	"net/http"
-	"os"
+	"runtime"
 	"time"
 )
 
 type Server struct {
-	httpServer *http.Server
+	httpServer *fiber.App
+	handler    *handler.Handler
 }
 
 type ServerInterface interface {
-	Run(port string, handler http.Handler) error
-	ShutDown(ctx context.Context) error
+	Run(port string, handler *handler.Handler) error
+	ShutDown() error
 }
 
-func (s *Server) Run(port string, handler http.Handler) error {
-	s.httpServer = &http.Server{
-		Addr:           ":" + port,
-		Handler:        handler,
-		MaxHeaderBytes: 1 << 20, //1MB
-		WriteTimeout:   10 * time.Second,
-		ReadTimeout:    10 * time.Second,
-	}
-	err := s.httpServer.ListenAndServe()
+func (s *Server) Run(port string, handler *handler.Handler, websocketClient *websocket.WebsocketClient) error {
+	s.httpServer = fiber.New(fiber.Config{
+		Prefork:           true,
+		StrictRouting:     true,
+		CaseSensitive:     true,
+		BodyLimit:         files.PostFilesMaxSize + 10*files.KB,
+		Concurrency:       runtime.NumCPU(),
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       5 * time.Second,
+		ReadBufferSize:    4096,
+		WriteBufferSize:   4096,
+		ErrorHandler:      nil,
+		DisableKeepalive:  false,
+		AppName:           "Hey server",
+		StreamRequestBody: true,
+		ReduceMemoryUsage: false,
+		JSONEncoder:       json.Marshal,
+		JSONDecoder:       json.Unmarshal,
+		EnablePrintRoutes: true,
+	})
+
+	s.handler = handler
+	s.handler.InitMiddlewares(s.httpServer)
+	s.handler.InitRoutes(s.httpServer, websocketClient)
+	err := s.httpServer.Listen(port)
 	if err != nil {
 		return err
 	}
-	log.Printf("Server is running on port %s", os.Getenv("PORT"))
+	log.Printf("ServerName is running on port %s", port)
 	return nil
 }
 
-func (s *Server) ShutDown(ctx context.Context) error {
-	return s.httpServer.Shutdown(ctx)
+func (s *Server) ShutDown() error {
+	return s.httpServer.Shutdown()
 }

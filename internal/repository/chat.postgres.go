@@ -3,27 +3,26 @@ package repository
 import (
 	"GoServer/Entities"
 	"context"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type ChatPostgres struct {
-	database *pgxpool.Pool
+	dataBases *DataBases
 }
 
-func NewChatPostgres(db *pgxpool.Pool) *ChatPostgres {
+func NewChatPostgres(dataBases *DataBases) *ChatPostgres {
 	return &ChatPostgres{
-		database: db,
+		dataBases: dataBases,
 	}
 }
 
-func (repository *ChatPostgres) CreateChat(ctx context.Context, chatDTO Entities.ChatDTO) (int64, error) {
-	tx, err := repository.database.Begin(ctx)
+func (repository *ChatPostgres) CreateChat(ctx context.Context, chatDTO Entities.ChatDTO) (uint, error) {
+	tx, err := repository.dataBases.Postgres.Begin(ctx)
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback(ctx)
 
-	var chatId int64
+	var chatId uint
 	row := tx.QueryRow(ctx, "INSERT INTO chats (name, avatar, members) VALUES ($1,$2,$3) RETURNING id", chatDTO.Name, chatDTO.Avatar, chatDTO.Members)
 	if err = row.Scan(&chatId); err != nil {
 		return 0, err
@@ -40,9 +39,9 @@ func (repository *ChatPostgres) CreateChat(ctx context.Context, chatDTO Entities
 	return chatId, nil
 }
 
-func (repository *ChatPostgres) UpdateChat(ctx context.Context, userId, chatId int64, chatDTO Entities.ChatUpdateDTO) error {
+func (repository *ChatPostgres) UpdateChat(ctx context.Context, userId, chatId uint, chatDTO Entities.ChatUpdateDTO) error {
 	var isOk bool
-	row := repository.database.QueryRow(ctx, `UPDATE chats SET name = $1, avatar = $2, members = $3
+	row := repository.dataBases.Postgres.QueryRow(ctx, `UPDATE chats SET name = $1, avatar = $2, members = $3
              WHERE id = $4 AND $5=ANY(members) RETURNING TRUE`, chatDTO.Name, chatDTO.Avatar, chatDTO.Members, chatId, userId)
 
 	if err := row.Scan(&isOk); err != nil {
@@ -52,29 +51,29 @@ func (repository *ChatPostgres) UpdateChat(ctx context.Context, userId, chatId i
 	return nil
 }
 
-func (repository *ChatPostgres) DeleteChat(ctx context.Context, userId, chatId int64) ([]int64, error) {
-	var members []int64
-	row := repository.database.QueryRow(ctx, `DELETE FROM chats WHERE id = $1 AND $2 = ANY(members) RETURNING members`, chatId, userId)
+func (repository *ChatPostgres) DeleteChat(ctx context.Context, userId, chatId uint) ([]uint, error) {
+	var members []uint
+	row := repository.dataBases.Postgres.QueryRow(ctx, `DELETE FROM chats WHERE id = $1 AND $2 = ANY(members) RETURNING members`, chatId, userId)
 	if err := row.Scan(&members); err != nil {
-		return []int64{}, err
+		return []uint{}, err
 	}
 	return members, nil
 }
 
 //TODO time of time we need to check exists chats and remove deleted
 
-func (repository *ChatPostgres) GetChats(ctx context.Context, userId int64) (string, string, string, []int64, []int64, string, []Entities.Chat, error) {
+func (repository *ChatPostgres) GetChats(ctx context.Context, userId uint) (string, string, string, []uint, []uint, string, []Entities.Chat, error) {
 	var (
 		err         error
 		chatLists   string
 		avatar      string
 		name        string
 		surname     string
-		friends     = []int64{}
-		subscribers = []int64{}
-		allChats    = []int64{}
+		friends     = []uint{}
+		subscribers = []uint{}
+		allChats    = []uint{}
 	)
-	err = repository.database.QueryRow(ctx, `
+	err = repository.dataBases.Postgres.QueryRow(ctx, `
 		SELECT chat_lists, all_chats, avatar, name, surname, subscribers, friends
 		FROM users
 		WHERE id = $1
@@ -89,7 +88,7 @@ func (repository *ChatPostgres) GetChats(ctx context.Context, userId int64) (str
 
 	chats := make([]Entities.Chat, 0, len(allChats))
 
-	rows, err := repository.database.Query(ctx, `
+	rows, err := repository.dataBases.Postgres.Query(ctx, `
 		SELECT id, name, avatar, members
 		FROM chats
 		WHERE id = ANY ($1)
@@ -110,7 +109,7 @@ func (repository *ChatPostgres) GetChats(ctx context.Context, userId int64) (str
 	return avatar, name, surname, friends, subscribers, chatLists, chats, err
 }
 
-func (repository *ChatPostgres) UpdateChatLists(ctx context.Context, id int64, newChatLists string) error {
-	_, err := repository.database.Exec(ctx, `UPDATE users SET chat_lists=$2 WHERE id=$1`, id, newChatLists)
+func (repository *ChatPostgres) UpdateChatLists(ctx context.Context, id uint, newChatLists string) error {
+	_, err := repository.dataBases.Postgres.Exec(ctx, `UPDATE users SET chat_lists=$2 WHERE id=$1`, id, newChatLists)
 	return err
 }

@@ -3,23 +3,26 @@ package service
 import (
 	"GoServer/Entities"
 	"GoServer/internal/repository"
-	"GoServer/pkg/jwt"
 	"context"
-	"github.com/gin-gonic/gin"
+	"github.com/Eugene-Usachev/fst"
+	"github.com/gofiber/fiber/v2"
 	"mime/multipart"
 )
 
 type Authorization interface {
-	CreateUser(ctx context.Context, dto Entities.UserDTO) (uint, error, jwt.LongliveAndAccessTokens)
-	SignIn(ctx context.Context, input Entities.SignInDTO) (uint, string, string, string, string, error)
-	RefreshToken(ctx context.Context, longLiveToken, email string) (uint, string, string, error)
+	CreateUser(ctx context.Context, dto Entities.UserDTO) (uint, error, Entities.AllTokenResponse)
+	SignIn(ctx context.Context, input Entities.SignInDTO) (Entities.SignInReturnDTO, Entities.AllTokenResponse, error)
+	Check(ctx context.Context, email, login string) (isEmailNotBusy, isLoginNotBusy bool)
+	Refresh(ctx context.Context, id uint, refreshToken string) (Entities.RefreshResponseDTO, error)
+	RefreshTokens(ctx context.Context, id uint, refreshToken string) (Entities.AllTokenResponse, error)
 }
 
 type User interface {
-	GetUserById(ctx context.Context, id uint, requestOwnerId uint) (Entities.GetUserDTO, []int64, error)
+	GetUserById(ctx context.Context, id uint) (Entities.GetUserDTO, error)
+	GetUserSubsIds(ctx context.Context, id uint) ([]uint, error)
 	GetFriendsAndSubs(ctx context.Context, clientId, userId uint) (Entities.GetFriendsAndSubsDTO, error)
 	UpdateUser(ctx context.Context, id uint, UpdateUserDTO Entities.UpdateUserDTO) error
-	ChangeAvatar(ctx *gin.Context, id uint) (string, error)
+	ChangeAvatar(ctx *fiber.Ctx, id uint) (string, error)
 	AddToFriends(ctx context.Context, id, body uint) error
 	DeleteFromFriends(ctx context.Context, id, body uint) error
 	AddToSubs(ctx context.Context, id, body uint) error
@@ -27,13 +30,16 @@ type User interface {
 	DeleteUser(ctx context.Context, id uint) error
 	GetUsers(ctx context.Context, idOfUsers string) ([]Entities.MiniUser, error)
 	GetUsersForFriendsPage(ctx context.Context, idOfUsers string) ([]Entities.FriendUser, error)
+
+	GetOnlineUsers(ctx context.Context, slice []string) ([]int, error)
+	SubscribeOnUsers(ctx context.Context, slice []string, clientId string) error
 }
 
 type Post interface {
 
 	/*region post*/
 
-	CreateAPost(ctx *gin.Context, id uint, postDTO Entities.CreateAPostDTO, surveyDTO Entities.CreateASurveyDTO, files []*multipart.FileHeader) error
+	CreatePost(ctx *fiber.Ctx, id uint, postDTO Entities.CreateAPostDTO, surveyDTO Entities.CreateASurveyDTO, files []*multipart.FileHeader) error
 	GetPostsByUserID(ctx context.Context, userID uint, offset uint) ([]Entities.Post, []Entities.Survey, error)
 	LikePost(ctx context.Context, userId, postId uint) error
 	UnlikePost(ctx context.Context, userId, postId uint) error
@@ -64,25 +70,25 @@ type Post interface {
 }
 
 type Message interface {
-	SaveMessage(ctx context.Context, userId int64, messageDTO Entities.MessageDTO) (int64, []int64, string, error)
-	UpdateMessage(ctx context.Context, messageId int64, userId int64, newData string) ([]int64, error)
-	DeleteMessage(ctx context.Context, messageId int64, userId int64) ([]int64, error)
+	SaveMessage(ctx context.Context, userId uint, messageDTO Entities.MessageDTO) (uint, []uint, string, error)
+	UpdateMessage(ctx context.Context, messageId uint, userId uint, newData string) ([]uint, error)
+	DeleteMessage(ctx context.Context, messageId uint, userId uint) ([]uint, error)
 	GetLastMessages(ctx context.Context, userId uint, chatsId string) ([]Entities.Message, error)
 	GetMessages(ctx context.Context, chatId, offset uint) ([20]Entities.Message, error)
 }
 
 type Chat interface {
-	CreateChat(ctx context.Context, userId int64, chatDTO Entities.ChatDTO) (int64, error)
-	UpdateChat(ctx context.Context, userId, chatId int64, chatDTO Entities.ChatUpdateDTO) error
-	DeleteChat(ctx context.Context, userId int64, chatId int64) ([]int64, error)
-	GetChats(ctx context.Context, userId int64) (string, string, string, []int64, []int64, string, []Entities.Chat, error)
-	UpdateChatLists(ctx context.Context, id int64, newChatLists string) error
+	CreateChat(ctx context.Context, userId uint, chatDTO Entities.ChatDTO) (uint, error)
+	UpdateChat(ctx context.Context, userId, chatId uint, chatDTO Entities.ChatUpdateDTO) error
+	DeleteChat(ctx context.Context, userId uint, chatId uint) ([]uint, error)
+	GetChats(ctx context.Context, userId uint) (string, string, string, []uint, []uint, string, []Entities.Chat, error)
+	UpdateChatLists(ctx context.Context, id uint, newChatLists string) error
 }
 
 type Music interface {
 	GetMusics(ctx context.Context, name string, offset uint) ([]Entities.Music, error)
 	GetMusic(ctx context.Context, id uint) (string, string, error)
-	AddMusic(ctx *gin.Context, id uint, music Entities.CreateMusicDTO) error
+	AddMusic(ctx *fiber.Ctx, id uint, music Entities.CreateMusicDTO) error
 }
 
 type Service struct {
@@ -94,13 +100,23 @@ type Service struct {
 	Chat
 }
 
-func NewService(repository *repository.Repository) *Service {
+type ServiceConfig struct {
+	Repository       *repository.Repository
+	AccessConverter  *fst.Converter
+	RefreshConverter *fst.Converter
+}
+
+func NewService(cfg *ServiceConfig) *Service {
 	return &Service{
-		Authorization: NewAuthService(repository.Authorization),
-		User:          NewUserService(repository.User),
-		Music:         NewMusicService(repository.Music),
-		Post:          NewPostService(repository.Post),
-		Message:       NewMessageService(repository.Message),
-		Chat:          NewChatService(repository.Chat),
+		Authorization: NewAuthService(&AuthServiceConfig{
+			repository:       cfg.Repository.Authorization,
+			accessConverter:  cfg.AccessConverter,
+			refreshConverter: cfg.RefreshConverter,
+		}),
+		User:    NewUserService(cfg.Repository.User),
+		Music:   NewMusicService(cfg.Repository.Music),
+		Post:    NewPostService(cfg.Repository.Post),
+		Message: NewMessageService(cfg.Repository.Message),
+		Chat:    NewChatService(cfg.Repository.Chat),
 	}
 }

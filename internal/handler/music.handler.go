@@ -2,65 +2,52 @@ package handler
 
 import (
 	"GoServer/Entities"
-	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
+	"github.com/gofiber/fiber/v2"
 	"strconv"
 )
 
-func (handler *Handler) getMusics(ctx *gin.Context) {
-	name := ctx.Query("name")
-	offset, err := strconv.ParseUint(ctx.Query("offset"), 10, 64)
+func (handler *Handler) getMusics(c *fiber.Ctx) error {
+	name := c.Query("name")
+	offset, err := strconv.ParseUint(c.Query("offset"), 10, 64)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusBadRequest, "invalid offset")
-		return
+		return NewErrorResponse(c, fiber.StatusBadRequest, "invalid offset")
 	}
 
-	musics, err := handler.services.GetMusics(ctx.Request.Context(), name, uint(offset))
+	musics, err := handler.services.Music.GetMusics(c.Context(), name, uint(offset))
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
+	return c.JSON(fiber.Map{
 		"data": musics,
 	})
 }
 
-func (handler *Handler) getMusic(ctx *gin.Context) {
-	id, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
-
+func (handler *Handler) getMusic(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusBadRequest, "invalid id")
+		return NewErrorResponse(c, fiber.StatusBadRequest, "invalid id")
 	}
-
-	pathToMusic, contentType, err := handler.services.GetMusic(ctx.Request.Context(), uint(id))
+	pathToMusic, contentType, err := handler.services.Music.GetMusic(c.Context(), uint(id))
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
-	log.Println(pathToMusic)
-	ctx.Header("Content-Type", contentType)
-	ctx.Status(http.StatusOK)
-	ctx.File(pathToMusic)
+	c.Set("Content-Type", contentType)
+	return c.SendFile(pathToMusic)
 }
 
-func (handler *Handler) addMusic(ctx *gin.Context) {
-	id, exist := ctx.Get("userId")
-	if !exist || id.(uint) < 1 {
-		NewErrorResponse(ctx, http.StatusBadRequest, "no authorized user")
-		return
+func (handler *Handler) addMusic(c *fiber.Ctx) error {
+	id, exist := c.Locals("userId").(uint)
+	if !exist || id < 1 {
+		return NewErrorResponse(c, fiber.StatusBadRequest, "no authorized user")
 	}
 	var input Entities.CreateMusicDTO
-	if err := ctx.ShouldBind(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, "invalid body request")
-		return
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("invalid body request")
 	}
-	err := handler.services.AddMusic(ctx, id.(uint), input)
+	err := handler.services.Music.AddMusic(c, id, input)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
-
-	ctx.String(http.StatusCreated, "created")
+	return c.SendStatus(fiber.StatusCreated)
 }

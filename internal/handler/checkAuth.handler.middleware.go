@@ -1,78 +1,85 @@
 package handler
 
 import (
-	"GoServer/pkg/jwt"
-	"github.com/gin-gonic/gin"
-	"net/http"
+	"GoServer/pkg/fasthttp_utils"
+	"github.com/Eugene-Usachev/fastbytes"
+	"github.com/gofiber/fiber/v2"
 )
 
-func (handler *Handler) refresh(ctx *gin.Context) bool {
-	longliveToken, err := ctx.Cookie("longliveToken")
-	if err != nil || longliveToken == "" {
-		NewErrorResponse(ctx, http.StatusUnauthorized, "empty auth token")
+// TODO r
+/*func (handler *handler) refreshTokens(c *fiber.Ctx) bool {
+	longliveToken := c.Cookies("longliveToken")
+	if longliveToken == "" {
+		NewErrorResponse(c, fiber.StatusUnauthorized, "empty auth token")
 		return false
 	}
+
 	password, err := jwt.ParseLongliveToken(longliveToken)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusUnauthorized, "empty auth token")
+		NewErrorResponse(c, fiber.StatusUnauthorized, "invalid auth token")
 		return false
 	}
 
-	email, err := ctx.Cookie("email")
-	if err != nil || email == "" {
-		NewErrorResponse(ctx, http.StatusUnauthorized, "empty email cookie")
+	email := c.Cookies("email")
+	if email == "" {
+		NewErrorResponse(c, fiber.StatusUnauthorized, "empty email cookie")
 		return false
 	}
 
-	id, accessToken, longliveToken, err := handler.services.RefreshToken(ctx.Request.Context(), password, email)
+	var (
+		id          uint
+		accessToken string
+	)
+
+	id, accessToken, longliveToken, err = handler.services.RefreshToken(c.Context(), password, email)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusUnauthorized, "invalid auth token")
+		NewErrorResponse(c, fiber.StatusUnauthorized, "invalid auth token")
 		return false
 	}
-	login, _ := ctx.Cookie("login")
-	setAllAuthCookies(ctx, accessToken, longliveToken, email, login)
 
-	ctx.Set("userId", id)
+	login := c.Cookies("login")
+	setAllAuthCookies(c, accessToken, longliveToken, email, login)
+
+	c.Locals("userId", id)
 	return true
-}
+}*/
 
-func (handler *Handler) CheckAuth(ctx *gin.Context) {
-	accessToken, err := ctx.Cookie("accessToken")
-	if err != nil || accessToken == "" {
-		if !handler.refresh(ctx) {
-			return
-		}
+func (handler *Handler) CheckAuth(c *fiber.Ctx) error {
+	accessToken := fastbytes.B2S(fasthttp_utils.GetAuthorizationHeader(c.Context()))
+	if accessToken == "" {
+		return c.SendStatus(fiber.StatusUnauthorized)
 	} else {
-		var userId uint
-		userId, err = jwt.ParseAccessToken(accessToken)
+		userId, err := handler.accessConverter.ParseToken(accessToken)
 		if err != nil {
-			if !handler.refresh(ctx) {
-				return
-			}
+			return c.SendStatus(fiber.StatusUnauthorized)
 		} else {
-			ctx.Set("userId", userId)
+			id := fastbytes.B2U(userId)
+			c.Locals("userId", id)
 		}
 	}
+	return c.Next()
 }
 
+// TODO r
 // SetTokensInFirst is using to set tokens when user get a page. This is important, because, in first,
-// we need to refresh token even on GET request and, in second, to use websocket correct.
-func (handler *Handler) SetTokensInFirst(ctx *gin.Context) {
-	accessToken, err := ctx.Cookie("accessToken")
-	if err != nil || accessToken == "" {
+// we need to refreshTokens even on GET request and, in second, to use websocket correct.
+/*func (handler *handler) SetTokensInFirst(ctx *fiber.Ctx) error {
+	accessToken := ctx.Cookies("accessToken")
+	if accessToken == "" {
 		handler.refreshInFirst(ctx)
 	} else {
 		userId, err := jwt.ParseAccessToken(accessToken)
 		if err != nil {
 			handler.refreshInFirst(ctx)
-			ctx.Set("userId", userId)
+			ctx.Locals("userId", userId)
 		}
 	}
+	return ctx.Next()
 }
 
-func (handler *Handler) refreshInFirst(ctx *gin.Context) bool {
-	longliveToken, err := ctx.Cookie("longliveToken")
-	if err != nil || longliveToken == "" {
+func (handler *handler) refreshInFirst(ctx *fiber.Ctx) bool {
+	longliveToken := ctx.Cookies("longliveToken")
+	if longliveToken == "" {
 		return false
 	}
 	password, err := jwt.ParseLongliveToken(longliveToken)
@@ -80,18 +87,19 @@ func (handler *Handler) refreshInFirst(ctx *gin.Context) bool {
 		return false
 	}
 
-	email, err := ctx.Cookie("email")
-	if err != nil || email == "" {
+	email := ctx.Cookies("email")
+	if email == "" {
 		return false
 	}
 
-	id, accessToken, longliveToken, err := handler.services.RefreshToken(ctx.Request.Context(), password, email)
+	id, accessToken, longliveToken, err := handler.services.RefreshToken(ctx.Context(), password, email)
 	if err != nil {
 		return false
 	}
-	login, _ := ctx.Cookie("login")
+	login := ctx.Cookies("login")
 	setAllAuthCookies(ctx, accessToken, longliveToken, email, login)
 
-	ctx.Set("userId", id)
+	ctx.Locals("userId", id)
 	return true
 }
+*/
