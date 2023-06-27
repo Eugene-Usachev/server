@@ -1,124 +1,121 @@
 package handler
 
 import (
-	"GoServer/Entities"
-	"context"
-	"encoding/json"
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 	"log"
-	"net/http"
 	"strconv"
 )
 
-const socketBasRequest = "400 Invalid message type\n"
-
-func (handler *Handler) sendMessage(request ParsedRequest, hub *Hub) {
-	defer handlePanic()
-	if !prepareAuthRequest(request) {
-		return
-	}
-	var message Entities.MessageDTO
-	err := json.Unmarshal([]byte(request.Data.(string)), &message)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-	id, members, date, err := handler.services.SaveMessage(context.Background(), request.Client.userId, message)
-	if err != nil {
-		request.Client.send <- []byte(err.Error())
-		return
-	}
-
-	message.ID = id
-	message.Date = date
-	var (
-		jsonResponse []byte
-	)
-	jsonResponse, err = json.Marshal(map[string]interface{}{
-		"method": "newMessage",
-		"data":   message,
-	})
-	if err != nil {
-		request.Client.send <- []byte(err.Error())
-		return
-	}
-
-	sendDataToMembers(hub, jsonResponse, members)
-}
-
-type UpdateMessageDTO struct {
-	MessageId int64  `json:"message_id" binding:"required"`
-	Data      string `json:"data" binding:"required"`
-}
-
-func (handler *Handler) getLastMessages(ctx *gin.Context) {
-	userId, exists := ctx.Get("userId")
-	if !exists {
-		NewErrorResponse(ctx, http.StatusBadRequest, "userId not found")
-	}
-	chatsId := ctx.Query("chats_id")
-
-	messages, err := handler.services.GetLastMessages(ctx.Request.Context(), userId.(uint), chatsId)
-	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"messages": messages})
-}
-
-func (handler *Handler) updateMessage(request ParsedRequest, hub *Hub) {
-	defer handlePanic()
-	if !prepareAuthRequest(request) {
-		return
-	}
-	var dto UpdateMessageDTO
-	err := json.Unmarshal([]byte(request.Data.(string)), &dto)
-	if err != nil {
-		return
-	}
-	members, err := handler.services.UpdateMessage(context.Background(), dto.MessageId, request.Client.userId, dto.Data)
-	if err != nil {
-		request.Client.send <- []byte(err.Error())
-		return
-	}
-	var jsonResponse []byte
-	jsonResponse, err = json.Marshal(map[string]any{
-		"method": "updateMessage",
-		"data":   []any{dto.Data, dto.MessageId},
-	})
-	if err != nil {
-		log.Printf("error encoding json: %v\n", err)
-		return
-	}
-	sendDataToMembers(hub, jsonResponse, members)
-}
-
-func (handler *Handler) deleteMessage(request ParsedRequest, hub *Hub) {
-	defer handlePanic()
-	if !prepareAuthRequest(request) {
-		return
-	}
-	var dto int64
-	err := json.Unmarshal([]byte(request.Data.(string)), &dto)
-	if err != nil {
-		return
-	}
-	members, err := handler.services.DeleteMessage(context.Background(), dto, request.Client.userId)
-	if err != nil {
-		request.Client.send <- []byte(err.Error())
-		return
-	}
-	var jsonResponse []byte
-	jsonResponse, err = json.Marshal(map[string]interface{}{
-		"method": "deleteMessage",
-		"data":   dto,
-	})
-	if err != nil {
-		log.Printf("error encoding json: %v\n", err)
-		return
-	}
-	sendDataToMembers(hub, jsonResponse, members)
-}
+//func (handler *Handler) sendMessage(request websocket2.ParsedRequest, hub *websocket2.Hub) {
+//	defer handlePanic()
+//	if !prepareAuthRequest(request) {
+//		return
+//	}
+//	var message Entities.MessageDTO
+//	err := json.Unmarshal([]byte(request.Data.(string)), &message)
+//	if err != nil {
+//		log.Println(err.Error())
+//		return
+//	}
+//	id, members, date, err := handler.services.SaveMessage(context.Background(), request.Client.userId, message)
+//	if err != nil {
+//		request.Client.send <- []byte(err.Error())
+//		return
+//	}
+//
+//	message.ID = id
+//	message.Date = date
+//	var (
+//		jsonResponse []byte
+//	)
+//	jsonResponse, err = json.Marshal(map[string]interface{}{
+//		"method": "newMessage",
+//		"data":   message,
+//	})
+//	if err != nil {
+//		request.Client.send <- []byte(err.Error())
+//		return
+//	}
+//
+//	sendDataToMembers(hub, jsonResponse, members)
+//}
+//
+//type UpdateMessageDTO struct {
+//	MessageId uint   `json:"message_id" binding:"required"`
+//	Data      string `json:"data" binding:"required"`
+//}
+//
+//func (handler *Handler) updateMessage(request websocket2.ParsedRequest, hub *websocket2.Hub) {
+//	defer handlePanic()
+//	if !prepareAuthRequest(request) {
+//		return
+//	}
+//	var dto UpdateMessageDTO
+//	err := json.Unmarshal([]byte(request.Data.(string)), &dto)
+//	if err != nil {
+//		return
+//	}
+//	members, err := handler.services.UpdateMessage(context.Background(), dto.MessageId, request.Client.userId, dto.Data)
+//	if err != nil {
+//		request.Client.send <- []byte(err.Error())
+//		return
+//	}
+//	var jsonResponse []byte
+//	jsonResponse, err = json.Marshal(map[string]any{
+//		"method": "updateMessage",
+//		"data":   []any{dto.Data, dto.MessageId},
+//	})
+//	if err != nil {
+//		log.Printf("error encoding json: %v\n", err)
+//		return
+//	}
+//	sendDataToMembers(hub, jsonResponse, members)
+//}
+//
+//func (handler *Handler) deleteMessage(request websocket2.ParsedRequest, hub *websocket2.Hub) {
+//	defer handlePanic()
+//	if !prepareAuthRequest(request) {
+//		return
+//	}
+//	var dto uint
+//	err := json.Unmarshal([]byte(request.Data.(string)), &dto)
+//	if err != nil {
+//		return
+//	}
+//	members, err := handler.services.DeleteMessage(context.Background(), dto, request.Client.userId)
+//	if err != nil {
+//		request.Client.send <- []byte(err.Error())
+//		return
+//	}
+//	var jsonResponse []byte
+//	jsonResponse, err = json.Marshal(map[string]interface{}{
+//		"method": "deleteMessage",
+//		"data":   dto,
+//	})
+//	if err != nil {
+//		log.Printf("error encoding json: %v\n", err)
+//		return
+//	}
+//	sendDataToMembers(hub, jsonResponse, members)
+//}
+//
+//func prepareAuthRequest(parsedRequest websocket2.ParsedRequest) bool {
+//	if parsedRequest.Client.userId == 0 {
+//		parsedRequest.Client.send <- []byte("401 Not Allowed\r\n")
+//		return false
+//	}
+//	return true
+//}
+//
+//func sendDataToMembers(hub *websocket2.Hub, data []byte, members []uint) {
+//	defer handlePanic()
+//	for _, member := range members {
+//		client := hub.authClients[member]
+//		if client != nil {
+//			client.send <- data
+//		}
+//	}
+//}
 
 func handlePanic() {
 	if err := recover(); err != nil {
@@ -126,39 +123,40 @@ func handlePanic() {
 	}
 }
 
-func prepareAuthRequest(parsedRequest ParsedRequest) bool {
-	if parsedRequest.Client.userId == 0 {
-		parsedRequest.Client.send <- []byte("401 Not Allowed\r\n")
-		return false
-	}
-	return true
-}
-
-func sendDataToMembers(hub *Hub, data []byte, members []int64) {
-	defer handlePanic()
-	for _, member := range members {
-		client := hub.authClients[member]
-		if client != nil {
-			client.send <- data
-		}
-	}
-}
-
-func (handler *Handler) getMessages(ctx *gin.Context) {
-	chatId, err := strconv.ParseUint(ctx.Param("id"), 10, 64)
-	if err != nil || chatId < 1 {
-		NewErrorResponse(ctx, http.StatusBadRequest, err.Error())
-	}
-	var offset uint64
-	offset, err = strconv.ParseUint(ctx.Query("offset"), 10, 64)
-	if err != nil || offset < 0 {
-		NewErrorResponse(ctx, http.StatusBadRequest, err.Error())
+func (handler *Handler) getLastMessages(c *fiber.Ctx) error {
+	userId, exists := c.Locals("userId").(uint)
+	if !exists {
+		return NewErrorResponse(c, fiber.StatusBadRequest, "userId not found")
 	}
 
-	var messages = [20]Entities.Message{}
-	messages, err = handler.services.GetMessages(ctx.Request.Context(), uint(chatId), uint(offset))
+	chatsId := c.Query("chats_id")
+	messages, err := handler.services.Message.GetLastMessages(c.Context(), userId, chatsId)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
-	ctx.JSON(http.StatusOK, gin.H{"messages": messages})
+
+	return c.JSON(fiber.Map{
+		"messages": messages,
+	})
+}
+
+func (handler *Handler) getMessages(c *fiber.Ctx) error {
+	chatId, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil || chatId < 1 {
+		return NewErrorResponse(c, fiber.StatusBadRequest, err.Error())
+	}
+
+	offset, err := strconv.ParseUint(c.Query("offset"), 10, 64)
+	if err != nil || offset < 0 {
+		return NewErrorResponse(c, fiber.StatusBadRequest, err.Error())
+	}
+
+	messages, err := handler.services.Message.GetMessages(c.Context(), uint(chatId), uint(offset))
+	if err != nil {
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(fiber.Map{
+		"messages": messages,
+	})
 }

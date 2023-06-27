@@ -3,23 +3,20 @@ package handler
 import (
 	"GoServer/internal/service/files"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"net/http"
+	"github.com/gofiber/fiber/v2"
 	"path/filepath"
 	"strings"
 )
 
-func (handler *Handler) uploadFile(ctx *gin.Context) {
-	userId, exists := ctx.Get("userId")
-	if !exists || userId.(uint) < 1 {
-		NewErrorResponse(ctx, http.StatusBadRequest, "userId is required")
-		return
+func (handler *Handler) uploadFile(ctx *fiber.Ctx) error {
+	userId := ctx.Locals("userId")
+	if userId.(uint) < 1 {
+		return NewErrorResponse(ctx, fiber.StatusBadRequest, "userId is required")
 	}
 
 	form, err := ctx.MultipartForm()
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(ctx, fiber.StatusInternalServerError, err.Error())
 	}
 
 	file := form.File["file"][0]
@@ -40,9 +37,8 @@ func (handler *Handler) uploadFile(ctx *gin.Context) {
 	var name string //todo music
 	name, err = files.UploadFile(ctx, file, fmt.Sprintf("./static/UserFiles/%d/%s/", userId.(uint), folder))
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(ctx, fiber.StatusInternalServerError, err.Error())
 	}
 
-	ctx.String(http.StatusOK, name)
+	return ctx.Status(fiber.StatusOK).SendString(name)
 }

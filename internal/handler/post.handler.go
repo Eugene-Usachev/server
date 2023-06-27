@@ -3,63 +3,58 @@ package handler
 import (
 	"GoServer/Entities"
 	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"net/http"
+	"github.com/gofiber/fiber/v2"
 	"strconv"
 )
 
 /*region post*/
-func getPostAndUserId(ctx *gin.Context) (uint, uint) {
-	userId, exist := ctx.Get("userId")
-	if !exist || userId.(uint) < 1 {
-		NewErrorResponse(ctx, http.StatusUnauthorized, "invalid auth token")
+func getPostAndUserID(c *fiber.Ctx) (uint, uint) {
+	userID := c.Locals("userId")
+	if userID == "" {
+		NewErrorResponse(c, fiber.StatusUnauthorized, "invalid auth token")
 		return 0, 0
 	}
 
-	postId, err := strconv.ParseUint(ctx.Param("postId"), 10, 64)
-	if err != nil || uint(postId) < 1 {
-		NewErrorResponse(ctx, http.StatusBadRequest, "invalid request body")
+	postID, err := strconv.ParseUint(c.Params("postId"), 10, 64)
+	if err != nil || uint(postID) < 1 {
+		NewErrorResponse(c, fiber.StatusBadRequest, "invalid request body")
 		return 0, 0
 	}
 
-	return userId.(uint), uint(postId)
+	return userID.(uint), uint(postID)
 }
 
-func (handler *Handler) createAPost(ctx *gin.Context) {
-	userId, exist := ctx.Get("userId")
-	if !exist || userId.(uint) < 1 {
-		NewErrorResponse(ctx, http.StatusUnauthorized, "invalid auth token")
-		return
+func (handler *Handler) createPost(c *fiber.Ctx) error {
+	userID, exist := c.Locals("userId").(uint)
+	if !exist || userID < 1 {
+		return NewErrorResponse(c, fiber.StatusUnauthorized, "invalid auth token")
 	}
-	form, err := ctx.MultipartForm()
+
+	form, err := c.MultipartForm()
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusBadRequest, "Error processing form data")
-		return
+		return NewErrorResponse(c, fiber.StatusBadRequest, "Error processing form data")
 	}
 
 	post := form.Value["post"]
 	if post == nil {
-		NewErrorResponse(ctx, http.StatusBadRequest, "Error: Missing post value")
-		return
+		return NewErrorResponse(c, fiber.StatusBadRequest, "Error: Missing post value")
 	}
 
-	var PostDTO Entities.CreateAPostDTO
-	err = json.Unmarshal([]byte(post[0]), &PostDTO)
+	var postDTO Entities.CreateAPostDTO
+	err = json.Unmarshal([]byte(post[0]), &postDTO)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusBadRequest, err.Error())
-		return
+		return NewErrorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
 
 	survey := form.Value["survey"]
-	var SurveyDTO Entities.CreateASurveyDTO
+	var surveyDTO Entities.CreateASurveyDTO
 	if survey != nil && survey[0] != "" {
-		err = json.Unmarshal([]byte(survey[0]), &SurveyDTO)
+		err = json.Unmarshal([]byte(survey[0]), &surveyDTO)
 		if err != nil {
-			NewErrorResponse(ctx, http.StatusBadRequest, err.Error())
-			return
+			return NewErrorResponse(c, fiber.StatusBadRequest, err.Error())
 		}
 	} else {
-		SurveyDTO = Entities.CreateASurveyDTO{}
+		surveyDTO = Entities.CreateASurveyDTO{}
 	}
 
 	files := form.File["files"]
@@ -67,264 +62,260 @@ func (handler *Handler) createAPost(ctx *gin.Context) {
 		files = files[:10]
 	}
 
-	err = handler.services.CreateAPost(ctx, userId.(uint), PostDTO, SurveyDTO, files)
+	err = handler.services.Post.CreatePost(c, userID, postDTO, surveyDTO, files)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"message": "Post and files created successfully"})
+	return c.JSON(fiber.Map{"message": "Post and files created successfully"})
 }
 
-func (handler *Handler) getPostsByUserID(ctx *gin.Context) {
-
-	authorId, err := strconv.ParseUint(ctx.Param("authorId"), 10, 64)
+func (handler *Handler) getPostsByUserID(c *fiber.Ctx) error {
+	authorID, err := strconv.ParseUint(c.Params("authorId"), 10, 64)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusBadRequest, err.Error())
-		return
-	}
-	var offset uint64
-	offset, err = strconv.ParseUint(ctx.Query("offset"), 10, 32)
-
-	if uint(authorId) < 1 {
-		NewErrorResponse(ctx, http.StatusBadRequest, "nothing to get")
-		return
+		return NewErrorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
 
-	posts, surveys, err := handler.services.GetPostsByUserID(ctx.Request.Context(), uint(authorId), uint(offset))
+	offset, err := strconv.ParseUint(c.Query("offset"), 10, 32)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		offset = 0
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
+	if uint(authorID) < 1 {
+		return NewErrorResponse(c, fiber.StatusBadRequest, "nothing to get")
+	}
+
+	posts, surveys, err := handler.services.Post.GetPostsByUserID(c.Context(), uint(authorID), uint(offset))
+	if err != nil {
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(fiber.Map{
 		"posts":   posts,
 		"surveys": surveys,
 	})
 }
 
-func (handler *Handler) likePost(ctx *gin.Context) {
-	ctx2 := ctx.Request.Context()
-	userId, postId := getPostAndUserId(ctx)
-	err := handler.services.LikePost(ctx2, userId, postId)
+func (handler *Handler) likePost(c *fiber.Ctx) error {
+	ctx2 := c.Context()
+	userID, postID := getPostAndUserID(c)
+	err := handler.services.Post.LikePost(ctx2, userID, postID)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
-	ctx.JSON(http.StatusNoContent, gin.H{})
+
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (handler *Handler) unlikePost(ctx *gin.Context) {
-	ctx2 := ctx.Request.Context()
-	userId, postId := getPostAndUserId(ctx)
-	err := handler.services.UnlikePost(ctx2, userId, postId)
+func (handler *Handler) unlikePost(c *fiber.Ctx) error {
+	ctx2 := c.Context()
+	userID, postID := getPostAndUserID(c)
+	err := handler.services.Post.UnlikePost(ctx2, userID, postID)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
-	ctx.JSON(http.StatusNoContent, gin.H{})
+
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (handler *Handler) dislikePost(ctx *gin.Context) {
-	ctx2 := ctx.Request.Context()
-	userId, postId := getPostAndUserId(ctx)
-	err := handler.services.DislikePost(ctx2, userId, postId)
+func (handler *Handler) dislikePost(c *fiber.Ctx) error {
+	ctx2 := c.Context()
+	userID, postID := getPostAndUserID(c)
+	err := handler.services.Post.DislikePost(ctx2, userID, postID)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
-	ctx.JSON(http.StatusNoContent, gin.H{})
+
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (handler *Handler) undislikePost(ctx *gin.Context) {
-	ctx2 := ctx.Request.Context()
-	userId, postId := getPostAndUserId(ctx)
-	err := handler.services.UndislikePost(ctx2, userId, postId)
+func (handler *Handler) undislikePost(c *fiber.Ctx) error {
+	ctx2 := c.Context()
+	userID, postID := getPostAndUserID(c)
+	err := handler.services.Post.UndislikePost(ctx2, userID, postID)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
-	ctx.JSON(http.StatusNoContent, gin.H{})
+
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (handler *Handler) deletePost(ctx *gin.Context) {
-	ctx2 := ctx.Request.Context()
-	userId, postId := getPostAndUserId(ctx)
-	err := handler.services.DeletePost(ctx2, userId, postId)
+func (handler *Handler) deletePost(c *fiber.Ctx) error {
+	ctx2 := c.Context()
+	userID, postID := getPostAndUserID(c)
+	err := handler.services.Post.DeletePost(ctx2, userID, postID)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
-	ctx.JSON(http.StatusNoContent, gin.H{})
+
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 /*endregion*/
 
 /*region comment*/
-func getCommentAndUserId(ctx *gin.Context) (uint, uint) {
-	userId, exist := ctx.Get("userId")
-	if !exist || userId.(uint) < 1 {
-		NewErrorResponse(ctx, http.StatusUnauthorized, "invalid auth token")
+func getCommentAndUserId(c *fiber.Ctx) (uint, uint) {
+	userId := c.Locals("userId").(uint)
+	if userId < 1 {
+		NewErrorResponse(c, fiber.StatusUnauthorized, "invalid auth token")
 		return 0, 0
 	}
 
-	commentId, err := strconv.ParseUint(ctx.Param("commentId"), 10, 64)
+	commentId, err := strconv.ParseUint(c.Params("commentId"), 10, 64)
 	if err != nil || uint(commentId) < 1 {
-		NewErrorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		NewErrorResponse(c, fiber.StatusBadRequest, "invalid request body")
 		return 0, 0
 	}
 
-	return userId.(uint), uint(commentId)
+	return userId, uint(commentId)
 }
 
-func (handler *Handler) getCommentsByPostId(ctx *gin.Context) {
-
-	postId, err := strconv.ParseUint(ctx.Param("postId"), 10, 64)
+func (handler *Handler) getCommentsByPostId(c *fiber.Ctx) error {
+	postId, err := strconv.ParseUint(c.Params("postId"), 10, 64)
 	if uint(postId) < 1 {
-		NewErrorResponse(ctx, http.StatusBadRequest, "invalid post id")
-		return
+		return NewErrorResponse(c, fiber.StatusBadRequest, "invalid post id")
 	}
 
-	offset, err := strconv.ParseUint(ctx.Query("offset"), 10, 64)
+	offset, err := strconv.ParseUint(c.Query("offset"), 10, 64)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusBadRequest, "invalid post id")
+		return NewErrorResponse(c, fiber.StatusBadRequest, "invalid post id")
 	}
 
-	comments, err := handler.services.GetCommentsByPostId(ctx.Request.Context(), uint(postId), uint(offset))
+	comments, err := handler.services.Post.GetCommentsByPostId(c.Context(), uint(postId), uint(offset))
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
+	return c.JSON(fiber.Map{
 		"comments": comments,
 	})
 }
-func (handler *Handler) createComment(ctx *gin.Context) {
 
-	userId, postId := getPostAndUserId(ctx)
+func (handler *Handler) createComment(c *fiber.Ctx) error {
+	userId, postId := getPostAndUserID(c)
 	var commentDTO Entities.CommentDTO
 
-	if err := ctx.BindJSON(&commentDTO); err != nil {
-		NewErrorResponse(ctx, http.StatusBadRequest, err.Error())
-		return
-	}
-	commentId, err := handler.services.CreateComment(ctx.Request.Context(), userId, postId, commentDTO)
-	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+	if err := c.BodyParser(&commentDTO); err != nil {
+		return NewErrorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{
+	commentId, err := handler.services.Post.CreateComment(c.Context(), userId, postId, commentDTO)
+	if err != nil {
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"commentId": commentId,
 	})
 }
-func (handler *Handler) likeComment(ctx *gin.Context) {
-	userId, commentId := getCommentAndUserId(ctx)
 
-	err := handler.services.LikeComment(ctx.Request.Context(), userId, commentId)
+func (handler *Handler) likeComment(c *fiber.Ctx) error {
+	userId, commentId := getCommentAndUserId(c)
+
+	err := handler.services.Post.LikeComment(c.Context(), userId, commentId)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	ctx.JSON(http.StatusNoContent, gin.H{})
+	return c.SendStatus(fiber.StatusNoContent)
 }
-func (handler *Handler) unlikeComment(ctx *gin.Context) {
-	userId, commentId := getCommentAndUserId(ctx)
 
-	err := handler.services.UnlikeComment(ctx.Request.Context(), userId, commentId)
+func (handler *Handler) unlikeComment(c *fiber.Ctx) error {
+	userId, commentId := getCommentAndUserId(c)
+
+	err := handler.services.Post.UnlikeComment(c.Context(), userId, commentId)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	ctx.JSON(http.StatusNoContent, gin.H{})
+	return c.SendStatus(fiber.StatusNoContent)
 }
-func (handler *Handler) dislikeComment(ctx *gin.Context) {
-	userId, commentId := getCommentAndUserId(ctx)
 
-	err := handler.services.DislikeComment(ctx.Request.Context(), userId, commentId)
+func (handler *Handler) dislikeComment(c *fiber.Ctx) error {
+	userId, commentId := getCommentAndUserId(c)
+
+	err := handler.services.Post.DislikeComment(c.Context(), userId, commentId)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	ctx.JSON(http.StatusNoContent, gin.H{})
+	return c.SendStatus(fiber.StatusNoContent)
 }
-func (handler *Handler) undislikeComment(ctx *gin.Context) {
-	userId, commentId := getCommentAndUserId(ctx)
 
-	err := handler.services.UndislikeComment(ctx.Request.Context(), userId, commentId)
+func (handler *Handler) undislikeComment(c *fiber.Ctx) error {
+	userId, commentId := getCommentAndUserId(c)
+
+	err := handler.services.Post.UndislikeComment(c.Context(), userId, commentId)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	ctx.JSON(http.StatusNoContent, gin.H{})
+	return c.SendStatus(fiber.StatusNoContent)
 }
-func (handler *Handler) updateComment(ctx *gin.Context) {
-	userId, commentId := getCommentAndUserId(ctx)
+
+func (handler *Handler) updateComment(c *fiber.Ctx) error {
+	userId, commentId := getCommentAndUserId(c)
 	var commentUpdateDTO Entities.CommentUpdateDTO
 
-	if err := ctx.BindJSON(&commentUpdateDTO); err != nil {
-		NewErrorResponse(ctx, http.StatusBadRequest, err.Error())
-		return
+	if err := c.BodyParser(&commentUpdateDTO); err != nil {
+		return NewErrorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
 
-	err := handler.services.UpdateComment(ctx.Request.Context(), userId, commentId, commentUpdateDTO)
+	err := handler.services.Post.UpdateComment(c.Context(), userId, commentId, commentUpdateDTO)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	ctx.JSON(http.StatusNoContent, gin.H{})
+	return c.SendStatus(fiber.StatusNoContent)
 }
-func (handler *Handler) deleteComment(ctx *gin.Context) {
-	userId, commentId := getCommentAndUserId(ctx)
 
-	err := handler.services.DeleteComment(ctx.Request.Context(), userId, commentId)
+func (handler *Handler) deleteComment(c *fiber.Ctx) error {
+	userId, commentId := getCommentAndUserId(c)
+
+	err := handler.services.Post.DeleteComment(c.Context(), userId, commentId)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	ctx.JSON(http.StatusNoContent, gin.H{})
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 /*endregion*/
 
 /*region survey*/
 
-func getSurveyAndUserId(ctx *gin.Context) (uint, uint) {
-	userId, exist := ctx.Get("userId")
-	if !exist || userId.(uint) < 1 {
-		NewErrorResponse(ctx, http.StatusBadRequest, "user id is required")
+func getSurveyAndUserId(ctx *fiber.Ctx) (uint, uint) {
+	userId := ctx.Locals("userId").(uint)
+	if userId < 1 {
+		NewErrorResponse(ctx, fiber.StatusBadRequest, "user id is required")
 		return 0, 0
 	}
 
-	surveyId, err := strconv.ParseUint(ctx.Param("postId"), 10, 64)
+	surveyId, err := strconv.ParseUint(ctx.Params("postId"), 10, 64)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusBadRequest, "post id is required")
+		NewErrorResponse(ctx, fiber.StatusBadRequest, "post id is required")
 		return 0, 0
 	}
 
-	return userId.(uint), uint(surveyId)
+	return userId, uint(surveyId)
 }
 
-func (handler *Handler) voteInSurvey(ctx *gin.Context) {
+func (handler *Handler) voteInSurvey(ctx *fiber.Ctx) error {
 	userId, surveyId := getSurveyAndUserId(ctx)
 
 	var votedFor struct {
 		VotedFor []uint8 `json:"voted_for" binding:"required"`
 	}
 
-	if err := ctx.BindJSON(&votedFor); err != nil || len(votedFor.VotedFor) == 0 {
-		NewErrorResponse(ctx, http.StatusBadRequest, `invalid voted for`)
-		return
+	if err := ctx.BodyParser(&votedFor); err != nil || len(votedFor.VotedFor) == 0 {
+		return NewErrorResponse(ctx, fiber.StatusBadRequest, `invalid voted for`)
 	}
 
-	err := handler.services.VoteInSurvey(ctx.Request.Context(), userId, surveyId, votedFor.VotedFor)
+	err := handler.services.Post.VoteInSurvey(ctx.Context(), userId, surveyId, votedFor.VotedFor)
 	if err != nil {
-		NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
-		return
+		return NewErrorResponse(ctx, fiber.StatusInternalServerError, err.Error())
 	}
-	ctx.JSON(http.StatusNoContent, gin.H{})
+	return ctx.SendStatus(fiber.StatusNoContent)
 }
 
 /*endregion*/

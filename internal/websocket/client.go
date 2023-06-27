@@ -1,13 +1,14 @@
-package handler
+package websocket
 
 import (
-	"GoServer/pkg/jwt"
-	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
-	"github.com/sirupsen/logrus"
+	"GoServer/pkg/fasthttp_utils"
+	"context"
+	fb "github.com/Eugene-Usachev/fastbytes"
+	"github.com/fasthttp/websocket"
+	"github.com/redis/rueidis"
+	"github.com/valyala/fasthttp"
 	"log"
-	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -18,27 +19,23 @@ const (
 	// Time allowed to read the next pong message from the peer.
 	pongWait = 60 * time.Second
 
-	// Send pings to peer with this period. Must be less than pongWait.
+	// CreateResponse pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer.
-	maxMessageSize = 4096
+	maxMessageSize = 1024
 )
 
-var upgrader = websocket.Upgrader{
+const (
+	onlineUsers = "ou"
+)
+
+var upgrader = websocket.FastHTTPUpgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
 }
 
-type ParsedRequest struct {
-	Method string `json:"method"`
-	Data   any    `json:"data"`
-	Client *Client
-}
-
+// TODO use pool
 type Client struct {
 	hub *Hub
 
@@ -48,30 +45,34 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	send chan []byte
 
-	//if UserId is 0 then user is unauthorized
-	userId int64
+	//if UserId is -1 then user is unauthorized
+	userId int
+
+	//ctx is context.Context. It is used to cancel the context
+	ctx context.Context
+
+	//cancel is function to cancel the ctx.
+	cancel context.CancelFunc
+
+	// subscriptions keeps list of subscriptions on Redis
+	subscriptions []string
 }
 
 // readPump pumps messages from the websocket connection to the hub.
 func (client *Client) readPump() {
 	defer func() {
 		client.hub.unregister <- client
-		err := client.conn.Close()
-		if err != nil {
-			logrus.Error(err)
-			return
-		}
 	}()
 	client.conn.SetReadLimit(maxMessageSize)
 	err := client.conn.SetReadDeadline(time.Now().Add(pongWait))
 	if err != nil {
-		logrus.Error(err)
+		log.Println(err)
 		return
 	}
 	client.conn.SetPongHandler(func(string) error {
 		err = client.conn.SetReadDeadline(time.Now().Add(pongWait))
 		if err != nil {
-			logrus.Error(err)
+			log.Println(err)
 			return err
 		}
 		return nil
@@ -95,25 +96,21 @@ func (client *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		err := client.conn.Close()
-		if err != nil {
-			logrus.Error(err)
-			return
-		}
+		client.hub.unregister <- client
 	}()
 	for {
 		select {
 		case message, ok := <-client.send:
 			err := client.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err != nil {
-				logrus.Error(err)
+				log.Println(err)
 				return
 			}
 			if !ok {
 				// The hub closed the channel.
 				err = client.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				if err != nil {
-					logrus.Error(err)
+					log.Println(err)
 					return
 				}
 				return
@@ -125,7 +122,7 @@ func (client *Client) writePump() {
 			}
 			_, err = w.Write(message)
 			if err != nil {
-				logrus.Error(err)
+				log.Println(err)
 				return
 			}
 
@@ -134,7 +131,7 @@ func (client *Client) writePump() {
 			for i := 0; i < n; i++ {
 				_, err = w.Write(<-client.send)
 				if err != nil {
-					logrus.Error(err)
+					log.Println(err)
 					return
 				}
 			}
@@ -145,7 +142,7 @@ func (client *Client) writePump() {
 		case <-ticker.C:
 			err := client.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err != nil {
-				logrus.Error(err)
+				log.Println(err)
 				return
 			}
 			if err = client.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
@@ -155,49 +152,56 @@ func (client *Client) writePump() {
 	}
 }
 
+var welcomeMessage = fb.S2B("Welcome")
+
 // ServeWs handles websocket requests from the peer.
-func (hub *Hub) ServeWs(ctx *gin.Context) {
-	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
+func (websocketClient *WebsocketClient) ServeWs(ctx *fasthttp.RequestCtx) error {
+	err := upgrader.Upgrade(ctx, func(conn *websocket.Conn) {
+		client := &Client{hub: websocketClient.hub, conn: conn, send: make(chan []byte, 256)}
+		client.userId = client.verify(ctx)
+		client.hub.register <- client
+		clientCtx := context.Background()
+		client.ctx, client.cancel = context.WithCancel(clientCtx)
+		websocketClient.redis.Do(client.ctx, websocketClient.redis.B().Sadd().Key(onlineUsers).Member(strconv.Itoa(client.userId)).Build())
+
+		// Allow collection of memory referenced by the caller by doing all work in new goroutines.
+		go client.writePump()
+		go client.readPump()
+		go websocketClient.subscribeClient(client)
+
+		//client.send <- welcomeMessage
+	})
 	if err != nil {
 		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func (websocketClient *WebsocketClient) subscribeClient(client *Client) {
+	dedicatedClient, err := websocketClient.redis.Dedicate()
+	if err != nil {
+		websocketClient.hub.unregister <- client
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
-	client.userId = client.verify(ctx)
-	client.hub.register <- client
-
-	// Allow collection of memory referenced by the caller by doing all work in new goroutines.
-	go client.writePump()
-	go client.readPump()
-
-	client.send <- []byte("Welcome")
+	defer dedicatedClient.Close()
+	dedicatedClient.Receive(client.ctx, websocketClient.redis.B().Ssubscribe().Channel(strconv.Itoa(client.userId)).Build(), func(msg rueidis.PubSubMessage) {
+		client.send <- fb.S2B(msg.Message)
+	})
 }
 
-// We don't need to refresh tokens, because user in first send request and get token and in second send request to websocket.
-func (client *Client) verify(ctx *gin.Context) int64 {
-	accessToken, err := ctx.Cookie("accessToken")
-	if err != nil {
-		return 0
-	}
+// We don't need to refreshTokens tokens, because user in first send request and get token and in second send request to websocket.
+func (client *Client) verify(ctx *fasthttp.RequestCtx) int {
+	accessToken := fb.B2S(fasthttp_utils.GetAuthorizationHeader(ctx))
 	if accessToken == "" {
-		return 0
+		return -1
 	} else {
-		userId, err := jwt.ParseAccessToken(accessToken)
+		userId, err := client.hub.accessConverter.ParseToken(accessToken)
 		if err != nil {
-			return 0
+			return -1
+		} else {
+			return fb.B2I(userId)
 		}
-		return int64(userId)
 	}
-}
-
-func parseRequest(request []byte, client *Client) ParsedRequest {
-	var parsedRequest ParsedRequest
-	err := json.Unmarshal(request, &parsedRequest)
-	if err != nil {
-		log.Printf("error: %v", err)
-		return ParsedRequest{}
-	}
-	parsedRequest.Client = client
-
-	return parsedRequest
 }
