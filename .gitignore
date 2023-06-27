@@ -1,0 +1,5 @@
+/.bin
+/postgres_data
+/redis_data
+/static
+/.idea
