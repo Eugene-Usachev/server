@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 	"os"
 	"strings"
 )
@@ -36,7 +36,7 @@ func (service *MusicService) GetMusic(ctx context.Context, id uint) (string, str
 	return fmt.Sprintf("./static/UserFiles/%d/Music/%d.%s", parentUserId, id, fileExt), fileExt, nil
 }
 
-func (service *MusicService) AddMusic(ctx *gin.Context, id uint, music Entities.CreateMusicDTO) error {
+func (service *MusicService) AddMusic(ctx *fiber.Ctx, id uint, music Entities.CreateMusicDTO) error {
 
 	file, err := ctx.FormFile("file")
 	if err != nil || file == nil {
@@ -56,14 +56,14 @@ func (service *MusicService) AddMusic(ctx *gin.Context, id uint, music Entities.
 
 	music.Title = music.Title + "." + fileExt
 
-	musicId, err := service.repository.AddMusic(ctx.Request.Context(), id, music)
+	musicId, err := service.repository.AddMusic(ctx.Context(), id, music)
 	if err != nil {
 		return err
 	}
 
 	file.Filename = fmt.Sprintf("%d.%s", musicId, fileExt)
 
-	err = ctx.SaveUploadedFile(file, path+file.Filename)
+	err = ctx.SaveFile(file, path+file.Filename)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,18 @@
 version: '3'
 
 services:
+
+  redis:
+    restart: always
+    image: redis:latest
+    volumes:
+      - ./redis_data:/data
+    ports:
+      - "6379:6379"
+    command:
+      - --maxmemory 256MB
+      - --requirepass pass
+
   postgres:
     restart: always
     image: postgres:13-alpine
@@ -20,6 +32,7 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - postgres
+      - redis
     ports:
       - "4040:4040"
     environment:
@@ -27,15 +40,17 @@ services:
       DB_PASSWORD: db_create.go
       DB_USERNAME: postgres
       DB_PORT: 5432
+      PORT: 4040
       DB_NAME: hey
       SSL_MODE: disable
       CORES: "5"
+      REDIS_ADDRESS: redis:6379
+      REDIS_PASSWORD: pass
       SALT: uipads0797Wy
       JWT_SECRET_KEY: pz1xvp44cMoca1dmf9HJfa
       JWT_SECRET_KEY_FOR_LONGLIVE_TOKEN: zp1mvn65cmOca1hgf9HJfa
+      JWT_SECRET_KEY_FOR_REFRESH_TOKEN: aD987L3
       MAX_FILE_SIZE: "66060288"
-      GIN_MODE: release
-      #remove GIN_MODE: release
     volumes:
       - type: bind
         source: ./data

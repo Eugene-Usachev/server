@@ -3,22 +3,21 @@ package Entities
 // ID is a primary key
 type Chat struct {
 	//Primary key
-	ID     int64  `json:"id"`
-	Name   string `json:"name"`
-	Avatar string `json:"avatar"`
-	//TODO maybe int32?
-	Members []int64 `json:"members"`
+	ID      uint   `json:"id"`
+	Name    string `json:"name"`
+	Avatar  string `json:"avatar"`
+	Members []uint `json:"members"`
 }
 
 type ChatDTO struct {
-	ID      int64   `json:"id"`
-	Name    string  `json:"name" binding:"required"`
-	Avatar  string  `json:"avatar" binding:"required"`
-	Members []int64 `json:"members" binding:"required"`
+	ID      uint   `json:"id"`
+	Name    string `json:"name" binding:"required"`
+	Avatar  string `json:"avatar" binding:"required"`
+	Members []uint `json:"members" binding:"required"`
 }
 
 type ChatUpdateDTO struct {
-	Name    string  `json:"name" binding:"required"`
-	Avatar  string  `json:"avatar" binding:"required"`
-	Members []int64 `json:"members" binding:"required"`
+	Name    string `json:"name" binding:"required"`
+	Avatar  string `json:"avatar" binding:"required"`
+	Members []uint `json:"members" binding:"required"`
 }

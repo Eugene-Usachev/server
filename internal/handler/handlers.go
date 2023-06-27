@@ -2,126 +2,151 @@ package handler
 
 import (
 	"GoServer/internal/service"
-	"github.com/gin-gonic/gin"
+	"GoServer/internal/websocket"
+	"github.com/Eugene-Usachev/fastbytes"
+	"github.com/Eugene-Usachev/fst"
+	"github.com/gofiber/fiber/v2"
+	"log"
+)
+
+var (
+	MethodOptionsBytes = fastbytes.S2B("OPTIONS")
 )
 
 type Handler struct {
-	services *service.Service
+	services         *service.Service
+	accessConverter  *fst.Converter
+	refreshConverter *fst.Converter
 }
 
-func NewHandler(services *service.Service) *Handler {
+type HandlerConfig struct {
+	Services         *service.Service
+	AccessConverter  *fst.Converter
+	RefreshConverter *fst.Converter
+}
+
+func NewHandler(cfg *HandlerConfig) *Handler {
 	return &Handler{
-		services: services,
+		services:         cfg.Services,
+		accessConverter:  cfg.AccessConverter,
+		refreshConverter: cfg.RefreshConverter,
 	}
 }
 
-func (handler *Handler) InitRoutes() *gin.Engine {
-	router := gin.Default()
-	router.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+func (handler *Handler) InitMiddlewares(app *fiber.App) {
+	app.Use(func(c *fiber.Ctx) error {
+		c.Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		c.Set("Access-Control-Allow-Credentials", "true")
+		c.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
+		if fastbytes.Equal(c.Request().Header.Method(), MethodOptionsBytes) {
+			return c.SendStatus(204)
 		}
 
-		c.Next()
+		return c.Next()
 	})
-	newHub := NewHub()
-	go newHub.Run(handler)
 
-	router.Static("/UserFiles", "./static/UserFiles")
-	router.Static("/pages", "./static/pages/")
+	//app.Use(recover.New())
+}
 
-	router.MaxMultipartMemory = 1 << 20
+func (handler *Handler) InitRoutes(app *fiber.App, websocketClient *websocket.WebsocketClient) {
 
-	auth := router.Group("/auth")
+	app.Static("/UserFiles", "./static/UserFiles")
+	app.Static("/pages", "./static/pages/")
+
+	auth := app.Group("/auth")
 	{
-		auth.POST("/sign-up", handler.signUp)
-		auth.POST("/sign-in", handler.signIn)
-		auth.POST("/logout", handler.logout)
+		auth.Post("/sign-up", handler.signUp)
+		auth.Post("/sign-in", handler.signIn)
+		auth.Post("/check", handler.check)
+		auth.Post("/refresh", handler.refresh)
+		auth.Get("/refresh-tokens/:id", handler.refreshTokens)
 	}
-	api := router.Group("/api")
+	api := app.Group("/api")
 	{
-		userWithoutAuth := api.Group("/user", handler.SetTokensInFirst)
+		userWithoutAuth := api.Group("/user")
 		{
-			userWithoutAuth.GET("/:id", handler.getUser)
-			userWithoutAuth.GET("/friends_and_subs/:userId", handler.getFriendsAndSubs)
-			userWithoutAuth.GET("/many", handler.getUsers)
-			userWithoutAuth.GET("/friends_users", handler.getUsersForFriendPage)
+			userWithoutAuth.Get("/:id", handler.getUser)
+			userWithoutAuth.Get("/friends_and_subs/:userId", handler.getFriendsAndSubs)
+			userWithoutAuth.Get("/many", handler.getUsers)
+			userWithoutAuth.Get("/friends_users", handler.getUsersForFriendPage)
 		}
 		user := api.Group("/user", handler.CheckAuth)
 		{
-			user.PATCH("/", handler.updateUser)
-			user.POST("/avatar/", handler.changeAvatar)
-			user.PATCH("/friends/add/:id", handler.addToFriends)
-			user.PATCH("/friends/delete/:id", handler.deleteFromFriends)
-			user.PATCH("/subscribers/add/:id", handler.addToSubs)
-			user.PATCH("/subscribers/delete/:id", handler.deleteFromSubs)
-			user.DELETE("/", handler.deleteUser)
+			user.Get("/subs/", handler.getUserSubsIds)
+			user.Patch("/", handler.updateUser)
+			user.Post("/avatar/", handler.changeAvatar)
+			user.Patch("/friends/add/:id", handler.addToFriends)
+			user.Patch("/friends/delete/:id", handler.deleteFromFriends)
+			user.Patch("/subscribers/add/:id", handler.addToSubs)
+			user.Patch("/subscribers/delete/:id", handler.deleteFromSubs)
+			user.Delete("/", handler.deleteUser)
 		}
 
 		music := api.Group("/music")
 		{
-			music.GET("/musics", handler.getMusics)
-			music.GET("/:id", handler.getMusic)
-			music.POST("/", handler.CheckAuth, handler.addMusic)
-			//music.PATCH("/:id", handler.updateMusic)
-			//music.DELETE("/:id", handler.deleteMusic)
+			music.Get("/musics", handler.getMusics)
+			music.Get("/:id", handler.getMusic)
+			music.Post("/", handler.CheckAuth, handler.addMusic)
+			//music.Patch("/:id", handler.updateMusic)
+			//music.Delete("/:id", handler.deleteMusic)
 			//TODO playlists
 		}
 
 		file := api.Group("/file")
 		{
-			file.POST("/upload", handler.uploadFile)
+			file.Post("/upload", handler.uploadFile)
 		}
 
 		postWithoutAuth := api.Group("/post")
 		{
-			postWithoutAuth.GET("/:authorId", handler.getPostsByUserID)
+			postWithoutAuth.Get("/:authorId", handler.getPostsByUserID)
 		}
 		post := api.Group("/post", handler.CheckAuth)
 		{
-			post.POST("/", handler.createAPost)
-			//post.PATCH("/:id", handler.updatePost)
-			post.PATCH("/:postId/survey", handler.voteInSurvey)
-			post.PATCH("/:postId/likes/like", handler.likePost)
-			post.PATCH("/:postId/likes/unlike", handler.unlikePost)
-			post.PATCH("/:postId/dislikes/dislike", handler.dislikePost)
-			post.PATCH("/:postId/dislikes/undislike", handler.undislikePost)
-			post.DELETE("/:postId", handler.deletePost)
+			post.Post("/", handler.createPost)
+			//post.Patch("/:id", handler.updatePost)
+			post.Patch("/:postId/survey", handler.voteInSurvey)
+			post.Patch("/:postId/likes/like", handler.likePost)
+			post.Patch("/:postId/likes/unlike", handler.unlikePost)
+			post.Patch("/:postId/dislikes/dislike", handler.dislikePost)
+			post.Patch("/:postId/dislikes/undislike", handler.undislikePost)
+			post.Delete("/:postId", handler.deletePost)
 		}
 
 		commentWithoutAuth := api.Group("/comment")
 		{
-			commentWithoutAuth.GET("/:postId", handler.getCommentsByPostId)
+			commentWithoutAuth.Get("/:postId", handler.getCommentsByPostId)
 		}
 		comment := api.Group("/comment", handler.CheckAuth)
 		{
-			comment.POST("/:postId", handler.createComment)
-			comment.PATCH("/:commentId", handler.updateComment)
-			comment.PATCH("/:commentId/likes/like", handler.likeComment)
-			comment.PATCH("/:commentId/likes/unlike", handler.unlikeComment)
-			comment.PATCH("/:commentId/dislikes/dislike", handler.dislikeComment)
-			comment.PATCH("/:commentId/dislikes/undislike", handler.undislikeComment)
-			comment.DELETE("/:commentId", handler.deleteComment)
+			comment.Post("/:postId", handler.createComment)
+			comment.Patch("/:commentId", handler.updateComment)
+			comment.Patch("/:commentId/likes/like", handler.likeComment)
+			comment.Patch("/:commentId/likes/unlike", handler.unlikeComment)
+			comment.Patch("/:commentId/dislikes/dislike", handler.dislikeComment)
+			comment.Patch("/:commentId/dislikes/undislike", handler.undislikeComment)
+			comment.Delete("/:commentId", handler.deleteComment)
 		}
 
 		chat := api.Group("/chat", handler.CheckAuth)
 		{
-			chat.GET("/", handler.getChats)
-			chat.PATCH("/chat-list/", handler.UpdateChatLists)
+			chat.Get("/", handler.getChats)
+			chat.Patch("/chat-list/", handler.UpdateChatLists)
 		}
 		message := api.Group("/message", handler.CheckAuth)
 		{
-			message.GET("/last", handler.getLastMessages)
-			message.GET("/:id", handler.getMessages)
+			message.Get("/last", handler.getLastMessages)
+			message.Get("/:id", handler.getMessages)
 		}
 	}
 
-	router.GET("/ws", func(ctx *gin.Context) {
-		newHub.ServeWs(ctx)
+	go websocketClient.Run()
+
+	app.Get("/ws", func(ctx *fiber.Ctx) error {
+		return websocketClient.ServeWs(ctx.Context())
 	})
 
-	return router
+	log.Println("routers have been initialized")
 }

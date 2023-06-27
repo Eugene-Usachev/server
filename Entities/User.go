@@ -71,6 +71,25 @@ type GetUserDTO struct {
 	Subscribers []int64 `json:"subscribers"`
 }
 
+type Check struct {
+	Email string `json:"email"`
+	Login string `json:"login"`
+}
+
+type RefreshDTO struct {
+	Id uint `json:"id"`
+	// Token has a password
+	Token string `json:"token"`
+}
+
+type RefreshResponseDTO struct {
+	Avatar       string `json:"avatar"`
+	Name         string `json:"name"`
+	Surname      string `json:"surname"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 type FriendOrSubsDTO struct {
 	Friends     []int64 `json:"friends"`
 	Subscribers []int64 `json:"subscribers"`
@@ -96,8 +115,9 @@ type SignInDTO struct {
 }
 
 type SignInReturnDTO struct {
-	ID           uint
-	Email, Login string
+	ID                    uint
+	Email, Login          string
+	Name, Surname, Avatar string
 }
 
 type UserToCheck struct {
