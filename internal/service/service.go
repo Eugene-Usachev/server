@@ -12,7 +12,6 @@ import (
 type Authorization interface {
 	CreateUser(ctx context.Context, dto Entities.UserDTO) (uint, error, Entities.AllTokenResponse)
 	SignIn(ctx context.Context, input Entities.SignInDTO) (Entities.SignInReturnDTO, Entities.AllTokenResponse, error)
-	Check(ctx context.Context, email, login string) (isEmailNotBusy, isLoginNotBusy bool)
 	Refresh(ctx context.Context, id uint, refreshToken string) (Entities.RefreshResponseDTO, error)
 	RefreshTokens(ctx context.Context, id uint, refreshToken string) (Entities.AllTokenResponse, error)
 }

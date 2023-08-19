@@ -65,10 +65,6 @@ func (services *AuthService) SignIn(ctx context.Context, input Entities.SignInDT
 
 }
 
-func (services *AuthService) Check(ctx context.Context, email, login string) (isEmailNotBusy, isLoginNotBusy bool) {
-	return services.repository.Check(ctx, email, login)
-}
-
 var (
 	invalidTokenError = errors.New("invalid token")
 )
@@ -110,7 +106,7 @@ func (services *AuthService) RefreshTokens(ctx context.Context, id uint, refresh
 }
 
 var (
-	SALT     = fastbytes.S2B(os.Getenv("SALT"))
+	SALT     = os.Getenv("SALT")
 	hashPool = sync.Pool{
 		New: func() interface{} {
 			return sha256.New()
@@ -124,6 +120,6 @@ func generatePasswordHash(password string) string {
 	defer func() {
 		hashPool.Put(sha)
 	}()
-	sha.Write(fastbytes.S2B(password))
+	sha.Write(fastbytes.S2B(password + SALT))
 	return fmt.Sprintf("%x", sha.Sum(nil))
 }

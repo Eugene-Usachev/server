@@ -2,6 +2,7 @@ package handler
 
 import (
 	"GoServer/Entities"
+	"GoServer/pkg/fasthttp_utils"
 	"github.com/gofiber/fiber/v2"
 	"strconv"
 )
@@ -92,7 +93,7 @@ func (handler *Handler) updateUser(c *fiber.Ctx) error {
 	}
 
 	var input Entities.UpdateUserDTO
-	if err := c.BodyParser(&input); err != nil {
+	if err := fasthttp_utils.JSON(c, &input); err != nil {
 		return NewErrorResponse(c, fiber.StatusBadRequest, "invalid request body")
 	}
 

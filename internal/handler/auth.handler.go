@@ -2,6 +2,7 @@ package handler
 
 import (
 	. "GoServer/Entities"
+	"GoServer/internal/repository"
 	utils "GoServer/pkg/fasthttp_utils"
 	"github.com/gofiber/fiber/v2"
 	"log"
@@ -24,10 +25,22 @@ func (handler *Handler) signUp(c *fiber.Ctx) error {
 
 	id, err, Tokens := handler.services.Authorization.CreateUser(c.Context(), input)
 	if err != nil {
+		// TODO r
 		log.Println(err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		switch err {
+		case repository.EmailBusy:
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		case repository.LoginBusy:
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		default:
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
@@ -48,7 +61,7 @@ func (handler *Handler) signIn(c *fiber.Ctx) error {
 
 	user, tokens, err := handler.services.Authorization.SignIn(c.Context(), input)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
@@ -62,27 +75,6 @@ func (handler *Handler) signIn(c *fiber.Ctx) error {
 		"surname":       user.Surname,
 		"access_token":  tokens.AccessToken,
 		"refresh_token": tokens.RefreshToken,
-	})
-}
-
-func (handler *Handler) check(c *fiber.Ctx) error {
-	var input Check
-	if err := c.BodyParser(&input); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-
-	if input.Email == "" && input.Login == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Email and login is empty",
-		})
-	}
-
-	isEmailNotBusy, isLoginNotBusy := handler.services.Authorization.Check(c.Context(), input.Email, input.Login)
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"isEmailBusy": !isEmailNotBusy,
-		"isLoginBusy": !isLoginNotBusy,
 	})
 }
 

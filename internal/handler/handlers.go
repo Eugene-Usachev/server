@@ -59,7 +59,6 @@ func (handler *Handler) InitRoutes(app *fiber.App, websocketClient *websocket.We
 	{
 		auth.Post("/sign-up", handler.signUp)
 		auth.Post("/sign-in", handler.signIn)
-		auth.Post("/check", handler.check)
 		auth.Post("/refresh", handler.refresh)
 		auth.Get("/refresh-tokens/:id", handler.refreshTokens)
 	}

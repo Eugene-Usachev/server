@@ -8,6 +8,8 @@ COPY go.mod go.sum ./
 RUN go mod download && go get -u ./...
 
 COPY . .
+
+RUN touch ./cmd/app/main.go
 RUN GOOS=linux GOARCH=amd64 go build -o ./.bin/app ./cmd/app/main.go
 
 # Final stage

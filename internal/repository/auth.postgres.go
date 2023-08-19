@@ -3,6 +3,7 @@ package repository
 import (
 	"GoServer/Entities"
 	"context"
+	"errors"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -16,11 +17,24 @@ func NewAuthPostgres(dataBases *DataBases) *AuthPostgres {
 	}
 }
 
+var EmailBusy = errors.New("email is busy")
+var LoginBusy = errors.New("login is busy")
+
 func (repository *AuthPostgres) CreateUser(ctx context.Context, user Entities.UserDTO) (uint, error) {
+	var err error
+
+	if err = repository.dataBases.Postgres.QueryRow(ctx, "SELECT id FROM users WHERE login=$1", user.Login).Scan(); err != pgx.ErrNoRows {
+		return 0, LoginBusy
+	}
+
+	if err = repository.dataBases.Postgres.QueryRow(ctx, "SELECT id FROM users WHERE email=$1", user.Email).Scan(); err != pgx.ErrNoRows {
+		return 0, EmailBusy
+	}
+
 	var id uint
 	row := repository.dataBases.Postgres.QueryRow(ctx, `INSERT INTO users (login, email, password, name, surname) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
 		user.Login, user.Email, user.Password, user.Name, user.Surname)
-	if err := row.Scan(&id); err != nil {
+	if err = row.Scan(&id); err != nil {
 		return 0, err
 	}
 	return id, nil
@@ -55,22 +69,6 @@ func (repository *AuthPostgres) RefreshTokens(ctx context.Context, email, passwo
 	}
 
 	return id, nil
-}
-
-func (repository *AuthPostgres) Check(ctx context.Context, email, login string) (isEmailNotBusy, isLoginNotBusy bool) {
-	var err error
-	if login != "" { // no rows in result
-		if err = repository.dataBases.Postgres.QueryRow(ctx, "SELECT id FROM users WHERE login=$1", login).Scan(); err != nil {
-			isLoginNotBusy = true
-		}
-	}
-
-	if email != "" { // no rows in result
-		if err = repository.dataBases.Postgres.QueryRow(ctx, "SELECT id FROM users WHERE email=$1", email).Scan(); err != nil {
-			isEmailNotBusy = true
-		}
-	}
-	return
 }
 
 func (repository *AuthPostgres) Refresh(ctx context.Context, id uint, password string) (dto Entities.RefreshResponseDTO, err error) {
