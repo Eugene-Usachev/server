@@ -57,11 +57,11 @@ type UpdateUserDTO struct {
 	Favourites_games     string `json:"favourites_games"`
 	Favourites_meals     string `json:"favourites_meals"`
 	Description          string `json:"description"`
-	Family_status        string `json:"family_status"`
+	Family_status        int8   `json:"family_status"`
 	Place_of_residence   string `json:"place_of_residence"`
-	Attitude_to_smocking string `json:"attitude_to_smocking"`
-	Attitude_to_sport    string `json:"attitude_to_sport"`
-	Attitude_to_alcohol  string `json:"attitude_to_alcohol"`
+	Attitude_to_smocking int8   `json:"attitude_to_smocking"`
+	Attitude_to_sport    int8   `json:"attitude_to_sport"`
+	Attitude_to_alcohol  int8   `json:"attitude_to_alcohol"`
 	Dreams               string `json:"dreams"`
 }
 
