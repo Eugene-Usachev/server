@@ -18,6 +18,7 @@ func (handler *Handler) getUser(c *fiber.Ctx) error {
 		if err.Error() == "sql: no rows in result set" {
 			return NewErrorResponse(c, fiber.StatusNotFound, "user is not exist")
 		}
+		handler.Logger.Error("get user error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 	return c.Status(fiber.StatusOK).JSON(user)
@@ -34,6 +35,7 @@ func (handler *Handler) getUserSubsIds(c *fiber.Ctx) error {
 
 	ids, err := handler.services.User.GetUserSubsIds(c.Context(), id.(uint))
 	if err != nil {
+		handler.Logger.Error("get user subs ids error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 	return c.Status(fiber.StatusOK).JSON(ids)
@@ -55,6 +57,7 @@ func (handler *Handler) getFriendsAndSubs(c *fiber.Ctx) error {
 		if err.Error() == "sql: no rows in result set" {
 			return NewErrorResponse(c, fiber.StatusNotFound, "user is not exist")
 		}
+		handler.Logger.Error("get friends and subs error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -69,6 +72,7 @@ func (handler *Handler) getUsersForFriendPage(c *fiber.Ctx) error {
 
 	users, err := handler.services.User.GetUsersForFriendsPage(c.Context(), idOfUsers)
 	if err != nil {
+		handler.Logger.Error("get users for friend page error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -80,6 +84,7 @@ func (handler *Handler) getUsers(c *fiber.Ctx) error {
 
 	users, err := handler.services.User.GetUsers(c.Context(), idOfUsers)
 	if err != nil {
+		handler.Logger.Error("get users error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -99,6 +104,7 @@ func (handler *Handler) updateUser(c *fiber.Ctx) error {
 
 	err := handler.services.User.UpdateUser(c.Context(), userId.(uint), input)
 	if err != nil {
+		handler.Logger.Error("update user error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 	return c.SendStatus(fiber.StatusNoContent)
@@ -112,6 +118,7 @@ func (handler *Handler) changeAvatar(ctx *fiber.Ctx) error {
 
 	fileName, err := handler.services.User.ChangeAvatar(ctx, userId.(uint))
 	if err != nil {
+		handler.Logger.Error("change avatar error: " + err.Error())
 		return NewErrorResponse(ctx, fiber.StatusInternalServerError, err.Error())
 	}
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
@@ -132,6 +139,7 @@ func (handler *Handler) addToFriends(c *fiber.Ctx) error {
 
 	err = handler.services.User.AddToFriends(c.Context(), userId.(uint), uint(bodyId))
 	if err != nil {
+		handler.Logger.Error("add to friends error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 	return c.SendStatus(fiber.StatusNoContent)
@@ -149,6 +157,7 @@ func (handler *Handler) deleteFromFriends(c *fiber.Ctx) error {
 
 	err = handler.services.User.DeleteFromFriends(c.Context(), userId.(uint), uint(bodyId))
 	if err != nil {
+		handler.Logger.Error("server delete from friends error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 	return c.SendStatus(fiber.StatusNoContent)
@@ -166,6 +175,7 @@ func (handler *Handler) addToSubs(c *fiber.Ctx) error {
 
 	err = handler.services.User.AddToSubs(c.Context(), userId.(uint), uint(bodyId))
 	if err != nil {
+		handler.Logger.Error("add to subs error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 	return c.SendStatus(fiber.StatusNoContent)
@@ -183,6 +193,7 @@ func (handler *Handler) deleteFromSubs(c *fiber.Ctx) error {
 
 	err = handler.services.User.DeleteFromSubs(c.Context(), userId.(uint), uint(bodyId))
 	if err != nil {
+		handler.Logger.Error("server delete from subs error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 	return c.SendStatus(fiber.StatusNoContent)
@@ -195,6 +206,7 @@ func (handler *Handler) deleteUser(c *fiber.Ctx) error {
 	}
 	err := handler.services.User.DeleteUser(c.Context(), userId.(uint))
 	if err != nil {
+		handler.Logger.Error("server delete user error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 	return c.SendStatus(fiber.StatusNoContent)

@@ -15,6 +15,7 @@ func (handler *Handler) getMusics(c *fiber.Ctx) error {
 
 	musics, err := handler.services.Music.GetMusics(c.Context(), name, uint(offset))
 	if err != nil {
+		handler.Logger.Error("get musics error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -30,6 +31,7 @@ func (handler *Handler) getMusic(c *fiber.Ctx) error {
 	}
 	pathToMusic, contentType, err := handler.services.Music.GetMusic(c.Context(), uint(id))
 	if err != nil {
+		handler.Logger.Error("get music error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 	c.Set("Content-Type", contentType)
@@ -47,6 +49,7 @@ func (handler *Handler) addMusic(c *fiber.Ctx) error {
 	}
 	err := handler.services.Music.AddMusic(c, id, input)
 	if err != nil {
+		handler.Logger.Error("add music error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 	return c.SendStatus(fiber.StatusCreated)

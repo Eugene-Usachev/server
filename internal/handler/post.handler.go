@@ -64,6 +64,7 @@ func (handler *Handler) createPost(c *fiber.Ctx) error {
 
 	err = handler.services.Post.CreatePost(c, userID, postDTO, surveyDTO, files)
 	if err != nil {
+		handler.Logger.Error("create post error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -87,6 +88,7 @@ func (handler *Handler) getPostsByUserID(c *fiber.Ctx) error {
 
 	posts, surveys, err := handler.services.Post.GetPostsByUserID(c.Context(), uint(authorID), uint(offset))
 	if err != nil {
+		handler.Logger.Error("get posts by user id error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -101,6 +103,7 @@ func (handler *Handler) likePost(c *fiber.Ctx) error {
 	userID, postID := getPostAndUserID(c)
 	err := handler.services.Post.LikePost(ctx2, userID, postID)
 	if err != nil {
+		handler.Logger.Error("like post error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -112,6 +115,7 @@ func (handler *Handler) unlikePost(c *fiber.Ctx) error {
 	userID, postID := getPostAndUserID(c)
 	err := handler.services.Post.UnlikePost(ctx2, userID, postID)
 	if err != nil {
+		handler.Logger.Error("unlike post error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -134,6 +138,7 @@ func (handler *Handler) undislikePost(c *fiber.Ctx) error {
 	userID, postID := getPostAndUserID(c)
 	err := handler.services.Post.UndislikePost(ctx2, userID, postID)
 	if err != nil {
+		handler.Logger.Error("undislike post error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -145,6 +150,7 @@ func (handler *Handler) deletePost(c *fiber.Ctx) error {
 	userID, postID := getPostAndUserID(c)
 	err := handler.services.Post.DeletePost(ctx2, userID, postID)
 	if err != nil {
+		handler.Logger.Error("delete post error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -183,6 +189,7 @@ func (handler *Handler) getCommentsByPostId(c *fiber.Ctx) error {
 
 	comments, err := handler.services.Post.GetCommentsByPostId(c.Context(), uint(postId), uint(offset))
 	if err != nil {
+		handler.Logger.Error("get comments by post id error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -201,6 +208,7 @@ func (handler *Handler) createComment(c *fiber.Ctx) error {
 
 	commentId, err := handler.services.Post.CreateComment(c.Context(), userId, postId, commentDTO)
 	if err != nil {
+		handler.Logger.Error("create comment error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -214,6 +222,7 @@ func (handler *Handler) likeComment(c *fiber.Ctx) error {
 
 	err := handler.services.Post.LikeComment(c.Context(), userId, commentId)
 	if err != nil {
+		handler.Logger.Error("like comment error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -225,6 +234,7 @@ func (handler *Handler) unlikeComment(c *fiber.Ctx) error {
 
 	err := handler.services.Post.UnlikeComment(c.Context(), userId, commentId)
 	if err != nil {
+		handler.Logger.Error("unlike comment error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -236,6 +246,7 @@ func (handler *Handler) dislikeComment(c *fiber.Ctx) error {
 
 	err := handler.services.Post.DislikeComment(c.Context(), userId, commentId)
 	if err != nil {
+		handler.Logger.Error("dislike comment error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -247,6 +258,7 @@ func (handler *Handler) undislikeComment(c *fiber.Ctx) error {
 
 	err := handler.services.Post.UndislikeComment(c.Context(), userId, commentId)
 	if err != nil {
+		handler.Logger.Error("undislike comment error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -263,6 +275,7 @@ func (handler *Handler) updateComment(c *fiber.Ctx) error {
 
 	err := handler.services.Post.UpdateComment(c.Context(), userId, commentId, commentUpdateDTO)
 	if err != nil {
+		handler.Logger.Error("update comment error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -274,6 +287,7 @@ func (handler *Handler) deleteComment(c *fiber.Ctx) error {
 
 	err := handler.services.Post.DeleteComment(c.Context(), userId, commentId)
 	if err != nil {
+		handler.Logger.Error("delete comment error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -313,6 +327,7 @@ func (handler *Handler) voteInSurvey(ctx *fiber.Ctx) error {
 
 	err := handler.services.Post.VoteInSurvey(ctx.Context(), userId, surveyId, votedFor.VotedFor)
 	if err != nil {
+		handler.Logger.Error("vote in survey error: " + err.Error())
 		return NewErrorResponse(ctx, fiber.StatusInternalServerError, err.Error())
 	}
 	return ctx.SendStatus(fiber.StatusNoContent)

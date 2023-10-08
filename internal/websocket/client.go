@@ -4,10 +4,10 @@ import (
 	"GoServer/pkg/fasthttp_utils"
 	"context"
 	fb "github.com/Eugene-Usachev/fastbytes"
+	loggerLib "github.com/Eugene-Usachev/logger"
 	"github.com/fasthttp/websocket"
 	"github.com/redis/rueidis"
 	"github.com/valyala/fasthttp"
-	"log"
 	"strconv"
 	"time"
 )
@@ -42,6 +42,8 @@ type Client struct {
 	// The websocket connection.
 	conn *websocket.Conn
 
+	logger *loggerLib.FastLogger
+
 	// Buffered channel of outbound messages.
 	send chan []byte
 
@@ -66,13 +68,13 @@ func (client *Client) readPump() {
 	client.conn.SetReadLimit(maxMessageSize)
 	err := client.conn.SetReadDeadline(time.Now().Add(pongWait))
 	if err != nil {
-		log.Println(err)
+		client.logger.Error("set read deadline error: " + err.Error())
 		return
 	}
 	client.conn.SetPongHandler(func(string) error {
 		err = client.conn.SetReadDeadline(time.Now().Add(pongWait))
 		if err != nil {
-			log.Println(err)
+			client.logger.Error("set read deadline error: " + err.Error())
 			return err
 		}
 		return nil
@@ -82,7 +84,7 @@ func (client *Client) readPump() {
 		_, request, err = client.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				client.logger.Error("websocket.IsUnexpectedCloseError: " + err.Error())
 			}
 			break
 		}
@@ -103,14 +105,14 @@ func (client *Client) writePump() {
 		case message, ok := <-client.send:
 			err := client.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err != nil {
-				log.Println(err)
+				client.logger.Error("set write deadline error: " + err.Error())
 				return
 			}
 			if !ok {
 				// The hub closed the channel.
 				err = client.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				if err != nil {
-					log.Println(err)
+					client.logger.Error("writeMessage error: " + err.Error())
 					return
 				}
 				return
@@ -122,7 +124,7 @@ func (client *Client) writePump() {
 			}
 			_, err = w.Write(message)
 			if err != nil {
-				log.Println(err)
+				client.logger.Error("write error: " + err.Error())
 				return
 			}
 
@@ -131,7 +133,7 @@ func (client *Client) writePump() {
 			for i := 0; i < n; i++ {
 				_, err = w.Write(<-client.send)
 				if err != nil {
-					log.Println(err)
+					client.logger.Error("write error: " + err.Error())
 					return
 				}
 			}
@@ -142,7 +144,7 @@ func (client *Client) writePump() {
 		case <-ticker.C:
 			err := client.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err != nil {
-				log.Println(err)
+				client.logger.Error("set write deadline error: " + err.Error())
 				return
 			}
 			if err = client.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
@@ -172,7 +174,7 @@ func (websocketClient *WebsocketClient) ServeWs(ctx *fasthttp.RequestCtx) error 
 		//client.send <- welcomeMessage
 	})
 	if err != nil {
-		log.Println(err)
+		websocketClient.logger.Error("upgrade error: " + err.Error())
 		return err
 	}
 

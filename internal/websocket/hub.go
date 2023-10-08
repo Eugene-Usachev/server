@@ -6,7 +6,6 @@ import (
 	fb "github.com/Eugene-Usachev/fastbytes"
 	"github.com/Eugene-Usachev/fst"
 	"github.com/redis/rueidis"
-	"log"
 	"strconv"
 )
 
@@ -53,11 +52,10 @@ func createResponse(messageType string, data string) ([]byte, error) {
 }
 
 func (websocketClient *WebsocketClient) Run() {
-	log.Println("hub started")
+	websocketClient.logger.Info("hub started")
 	defer func() {
 		if reason := recover(); reason != nil {
-			// TODO comment in production
-			log.Println("Handled panic, reason: ", reason)
+			websocketClient.logger.Error("Handled panic, reason: ", reason)
 		}
 	}()
 

@@ -5,7 +5,6 @@ import (
 	"GoServer/internal/repository"
 	utils "GoServer/pkg/fasthttp_utils"
 	"github.com/gofiber/fiber/v2"
-	"log"
 	"strconv"
 )
 
@@ -25,8 +24,6 @@ func (handler *Handler) signUp(c *fiber.Ctx) error {
 
 	id, err, Tokens := handler.services.Authorization.CreateUser(c.Context(), input)
 	if err != nil {
-		// TODO r
-		log.Println(err)
 		switch err {
 		case repository.EmailBusy:
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -37,6 +34,7 @@ func (handler *Handler) signUp(c *fiber.Ctx) error {
 				"error": err.Error(),
 			})
 		default:
+			handler.Logger.Error("sign up error" + err.Error())
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": err.Error(),
 			})
@@ -61,6 +59,7 @@ func (handler *Handler) signIn(c *fiber.Ctx) error {
 
 	user, tokens, err := handler.services.Authorization.SignIn(c.Context(), input)
 	if err != nil {
+		handler.Logger.Error("sign in error: " + err.Error())
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -94,8 +93,7 @@ func (handler *Handler) refresh(c *fiber.Ctx) error {
 
 	dto, err := handler.services.Authorization.Refresh(c.Context(), input.Id, input.Token)
 	if err != nil {
-		// TODO r
-		log.Println("refresh error", err.Error())
+		handler.Logger.Error("refresh error: " + err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -122,6 +120,7 @@ func (handler *Handler) refreshTokens(c *fiber.Ctx) error {
 	var tokens AllTokenResponse
 	tokens, err = handler.services.Authorization.RefreshTokens(c.Context(), uint(uid), refreshToken)
 	if err != nil {
+		handler.Logger.Error("refresh tokens error: " + err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})

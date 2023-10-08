@@ -5,11 +5,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-const (
-	longLiveTokenExpireTime = 60 * 60 * 24 * 365 * 100
-	accessTokenExpireTime   = 60 * 15
-)
-
 func NewErrorResponse(ctx *fiber.Ctx, statusCode int, message string) error {
 	return ctx.Status(statusCode).JSON(fiber.Map{
 		"message": message,

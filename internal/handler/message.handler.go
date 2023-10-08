@@ -2,7 +2,6 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"log"
 	"strconv"
 )
 
@@ -116,12 +115,6 @@ import (
 //		}
 //	}
 //}
-
-func handlePanic() {
-	if err := recover(); err != nil {
-		log.Printf("panic recovered: %v", err)
-	}
-}
 
 func (handler *Handler) getLastMessages(c *fiber.Ctx) error {
 	userId, exists := c.Locals("userId").(uint)

@@ -5,6 +5,7 @@ import (
 	"GoServer/internal/repository"
 	"context"
 	"github.com/Eugene-Usachev/fst"
+	"github.com/Eugene-Usachev/logger"
 	"github.com/gofiber/fiber/v2"
 	"mime/multipart"
 )
@@ -101,6 +102,7 @@ type Service struct {
 
 type ServiceConfig struct {
 	Repository       *repository.Repository
+	Logger           *logger.FastLogger
 	AccessConverter  *fst.Converter
 	RefreshConverter *fst.Converter
 }
@@ -109,6 +111,7 @@ func NewService(cfg *ServiceConfig) *Service {
 	return &Service{
 		Authorization: NewAuthService(&AuthServiceConfig{
 			repository:       cfg.Repository.Authorization,
+			logger:           cfg.Logger,
 			accessConverter:  cfg.AccessConverter,
 			refreshConverter: cfg.RefreshConverter,
 		}),

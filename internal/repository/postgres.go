@@ -17,13 +17,16 @@ type Config struct {
 	SSLMode  string
 }
 
-func NewPostgresDB(ctx context.Context, maxAttempts uint8, cfg Config) (pool *pgxpool.Pool, err error) {
-	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", cfg.UserName, cfg.UserPass, cfg.Host, cfg.Port, cfg.DBName)
+func NewPostgresDB(ctx context.Context, maxAttempts uint8, cfg Config, logger *PostgresLogger) (pool *pgxpool.Pool, err error) {
+	url := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", cfg.UserName, cfg.UserPass, cfg.Host, cfg.Port, cfg.DBName)
 	err = doWithTries(func() error {
 		ctx1, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		pool, err = pgxpool.New(ctx1, dsn)
+		pool, err = pgxpool.New(ctx1, url)
+		config, _ := pgxpool.ParseConfig(url)
+		config.ConnConfig.Tracer = logger
+		pool, err = pgxpool.NewWithConfig(ctx1, config)
 		if err != nil {
 			log.Println(err)
 			return err

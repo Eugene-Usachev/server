@@ -38,11 +38,7 @@ func (repository *UserPostgres) GetUserById(ctx context.Context, id uint) (Entit
 func (repository *UserPostgres) GetUserSubsIds(ctx context.Context, id uint) ([]uint, error) {
 	var ids = []uint{}
 
-	row := repository.dataBases.Postgres.QueryRow(ctx, `
-			SELECT subscribers 
-			FROM users 
-			WHERE id = $1
-		`, id)
+	row := repository.dataBases.Postgres.QueryRow(ctx, `SELECT subscribers FROM users WHERE id = $1`, id)
 	if err := row.Scan(&ids); err != nil {
 		return ids, err
 	}

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/Eugene-Usachev/fastbytes"
 	"github.com/Eugene-Usachev/fst"
+	"github.com/Eugene-Usachev/logger"
 	"hash"
 	"os"
 	"sync"
@@ -16,12 +17,14 @@ import (
 
 type AuthService struct {
 	repository       repository.Authorization
+	logger           *logger.FastLogger
 	accessConverter  *fst.Converter
 	refreshConverter *fst.Converter
 }
 
 type AuthServiceConfig struct {
 	repository       repository.Authorization
+	logger           *logger.FastLogger
 	accessConverter  *fst.Converter
 	refreshConverter *fst.Converter
 }
@@ -29,6 +32,7 @@ type AuthServiceConfig struct {
 func NewAuthService(cfg *AuthServiceConfig) *AuthService {
 	return &AuthService{
 		repository:       cfg.repository,
+		logger:           cfg.logger,
 		accessConverter:  cfg.accessConverter,
 		refreshConverter: cfg.refreshConverter,
 	}

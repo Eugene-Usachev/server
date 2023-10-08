@@ -5,8 +5,8 @@ import (
 	"GoServer/internal/websocket"
 	"github.com/Eugene-Usachev/fastbytes"
 	"github.com/Eugene-Usachev/fst"
+	loggerLib "github.com/Eugene-Usachev/logger"
 	"github.com/gofiber/fiber/v2"
-	"log"
 )
 
 var (
@@ -15,12 +15,14 @@ var (
 
 type Handler struct {
 	services         *service.Service
+	Logger           *loggerLib.FastLogger
 	accessConverter  *fst.Converter
 	refreshConverter *fst.Converter
 }
 
 type HandlerConfig struct {
 	Services         *service.Service
+	Logger           *loggerLib.FastLogger
 	AccessConverter  *fst.Converter
 	RefreshConverter *fst.Converter
 }
@@ -28,12 +30,19 @@ type HandlerConfig struct {
 func NewHandler(cfg *HandlerConfig) *Handler {
 	return &Handler{
 		services:         cfg.Services,
+		Logger:           cfg.Logger,
 		accessConverter:  cfg.AccessConverter,
 		refreshConverter: cfg.RefreshConverter,
 	}
 }
 
 func (handler *Handler) InitMiddlewares(app *fiber.App) {
+	app.Use(func(c *fiber.Ctx) error {
+		c.Next()
+		handler.Logger.FormatInfo("request | %-7s | %-42s | %d | %s\n", c.Method(), c.Path(), c.Response().StatusCode(), c.IP())
+		return nil
+	})
+
 	app.Use(func(c *fiber.Ctx) error {
 		c.Set("Access-Control-Allow-Origin", "http://localhost:3000")
 		c.Set("Access-Control-Allow-Credentials", "true")
@@ -47,6 +56,7 @@ func (handler *Handler) InitMiddlewares(app *fiber.App) {
 		return c.Next()
 	})
 
+	// TODO prod
 	//app.Use(recover.New())
 }
 
@@ -141,11 +151,7 @@ func (handler *Handler) InitRoutes(app *fiber.App, websocketClient *websocket.We
 		}
 	}
 
-	go websocketClient.Run()
-
 	app.Get("/ws", func(ctx *fiber.Ctx) error {
 		return websocketClient.ServeWs(ctx.Context())
 	})
-
-	log.Println("routers have been initialized")
 }
