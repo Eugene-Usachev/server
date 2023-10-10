@@ -25,6 +25,24 @@ services:
     ports:
       - "5436:5432"
 
+  prometheus:
+    restart: always
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    restart: no
+    image: grafana/grafana-oss:latest
+    ports:
+      - "13000:3000"
+    depends_on:
+      - prometheus
+    volumes:
+      - ./metrics/grafana:/var/lib/grafana
+
   app:
     restart: no
     build:
@@ -33,14 +51,18 @@ services:
     depends_on:
       - postgres
       - redis
+      - prometheus
+      - grafana
     ports:
       - "4040:4040"
+      - "9091:9091"
     environment:
       DB_HOST: postgres
       DB_PASSWORD: db_create.go
       DB_USERNAME: postgres
       DB_PORT: 5432
       PORT: 4040
+      DISABLE_METRICS: false
       DB_NAME: hey
       SSL_MODE: disable
       CORES: "5"

@@ -1,12 +1,17 @@
 package handler
 
 import (
+	"GoServer/internal/metrics"
 	"GoServer/internal/service"
 	"GoServer/internal/websocket"
 	"github.com/Eugene-Usachev/fastbytes"
 	"github.com/Eugene-Usachev/fst"
 	loggerLib "github.com/Eugene-Usachev/logger"
 	"github.com/gofiber/fiber/v2"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/valyala/fasthttp/fasthttpadaptor"
+	"os"
+	"time"
 )
 
 var (
@@ -28,20 +33,16 @@ type HandlerConfig struct {
 }
 
 func NewHandler(cfg *HandlerConfig) *Handler {
-	return &Handler{
+	h := &Handler{
 		services:         cfg.Services,
 		Logger:           cfg.Logger,
 		accessConverter:  cfg.AccessConverter,
 		refreshConverter: cfg.RefreshConverter,
 	}
+	return h
 }
 
 func (handler *Handler) InitMiddlewares(app *fiber.App) {
-	app.Use(func(c *fiber.Ctx) error {
-		c.Next()
-		handler.Logger.FormatInfo("request | %-7s | %-42s | %d | %s\n", c.Method(), c.Path(), c.Response().StatusCode(), c.IP())
-		return nil
-	})
 
 	app.Use(func(c *fiber.Ctx) error {
 		c.Set("Access-Control-Allow-Origin", "http://localhost:3000")
@@ -55,6 +56,32 @@ func (handler *Handler) InitMiddlewares(app *fiber.App) {
 
 		return c.Next()
 	})
+
+	disableMetrics := os.Getenv("DISABLE_METRICS")
+	if disableMetrics == "true" {
+		app.Use(func(c *fiber.Ctx) error {
+			startTime := time.Now()
+			c.Next()
+			end := time.Since(startTime)
+			method := c.Method()
+			path := c.Path()
+			statusCode := c.Response().StatusCode()
+			handler.Logger.FormatInfo("request | %-7s | %-42s | %d | %-21d microseconds |\n", method, path, statusCode, end)
+			return nil
+		})
+	} else {
+		app.Use(func(c *fiber.Ctx) error {
+			startTime := time.Now()
+			c.Next()
+			end := time.Since(startTime)
+			method := c.Method()
+			path := c.Path()
+			statusCode := c.Response().StatusCode()
+			handler.Logger.FormatInfo("request | %-7s | %-42s | %d | %-21d microseconds |\n", method, path, statusCode, end)
+			metrics.ObserveRequest(float64(end), method, path, statusCode)
+			return nil
+		})
+	}
 
 	// TODO prod
 	//app.Use(recover.New())
@@ -154,4 +181,13 @@ func (handler *Handler) InitRoutes(app *fiber.App, websocketClient *websocket.We
 	app.Get("/ws", func(ctx *fiber.Ctx) error {
 		return websocketClient.ServeWs(ctx.Context())
 	})
+
+	metricsHandler := fasthttpadaptor.NewFastHTTPHandler(promhttp.Handler())
+
+	if os.Getenv("DISABLE_METRICS") != "true" {
+		app.Get("/metrics", func(ctx *fiber.Ctx) error {
+			metricsHandler(ctx.Context())
+			return nil
+		})
+	}
 }
