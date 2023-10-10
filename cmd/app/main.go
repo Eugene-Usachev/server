@@ -6,6 +6,7 @@ import (
 	"GoServer/internal/server"
 	"GoServer/internal/service"
 	"GoServer/internal/websocket"
+	"GoServer/pkg/customTime"
 	"GoServer/pkg/redis"
 	"context"
 	"crypto/sha256"
@@ -20,6 +21,7 @@ import (
 )
 
 func main() {
+	customTime.Start()
 
 	serverLogger, websocketLogger, postgresFastLogger := initLogs()
 

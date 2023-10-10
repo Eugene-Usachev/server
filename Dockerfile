@@ -22,6 +22,7 @@ COPY --from=builder /app/.bin/app .
 COPY static/ /root/static/
 
 EXPOSE 4040
+EXPOSE 9091
 
 RUN apk add dumb-init
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
