@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-var reuestMetrics = promauto.NewSummaryVec(prometheus.SummaryOpts{
+var requestMetrics = promauto.NewSummaryVec(prometheus.SummaryOpts{
 	Namespace: "GoServer",
 	Subsystem: "http",
 	Name:      "request",
@@ -18,5 +18,5 @@ var reuestMetrics = promauto.NewSummaryVec(prometheus.SummaryOpts{
 }, []string{"method", "path", "status"})
 
 func ObserveRequest(duration float64, method string, path string, status int) {
-	reuestMetrics.WithLabelValues(method, path, strconv.Itoa(status)).Observe(duration)
+	requestMetrics.WithLabelValues(method, path, strconv.Itoa(status)).Observe(duration)
 }

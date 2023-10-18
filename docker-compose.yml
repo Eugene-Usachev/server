@@ -75,8 +75,5 @@ services:
       MAX_FILE_SIZE: "66060288"
     volumes:
       - type: bind
-        source: ./data
-        target: /root/data
-      - type: bind
         source: ./logs
         target: /logs

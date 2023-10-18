@@ -11,7 +11,7 @@ type Comment struct {
 	//Index
 	ParentPostID    int           `json:"parent_post_id"`
 	Data            string        `json:"data"`
-	Date            string        `json:"date"`
+	Date            int64         `json:"date"`
 	ParentUserId    int           `json:"parent_user_id"`
 	Likes           int           `json:"likes"`
 	LikedBy         []int32       `json:"liked_by"`

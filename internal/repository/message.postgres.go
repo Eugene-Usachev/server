@@ -55,7 +55,7 @@ func (repository *MessagePostgres) SaveMessage(ctx context.Context, userId uint,
 	return messageId, chatMembers, nil
 }
 
-func (repository *MessagePostgres) UpdateMessage(ctx context.Context, messageId, userId uint, newData string) ([]uint, error) {
+func (repository *MessagePostgres) UpdateMessage(ctx context.Context, messageId, userId uint, newData int64) ([]uint, error) {
 	var members []uint
 	row := repository.dataBases.Postgres.QueryRow(ctx, `
 		WITH new_message AS (

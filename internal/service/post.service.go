@@ -4,13 +4,13 @@ import (
 	"GoServer/Entities"
 	"GoServer/internal/repository"
 	filesLib "GoServer/internal/service/files"
+	"GoServer/pkg/customTime"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"mime/multipart"
 	"path/filepath"
-	"time"
 )
 
 type PostService struct {
@@ -23,14 +23,13 @@ func NewPostService(repository repository.Post) *PostService {
 	}
 }
 
-func NewDate() string {
-	now := time.Now().In(time.UTC)
-	return now.Format("02 01 2006 в 15:04")
+func NewDate() int64 {
+	return customTime.Now.Load()
 }
 
 /*region post*/
 
-func (service *PostService) CreatePost(ctx *fiber.Ctx, id uint, postDTO Entities.CreateAPostDTO, surveyDTO Entities.CreateASurveyDTO, files []*multipart.FileHeader) error {
+func (service *PostService) CreatePost(ctx *fiber.Ctx, id uint, postDTO Entities.CreatePostDTO, surveyDTO Entities.CreateSurveyDTO, files []*multipart.FileHeader) (uint, error) {
 	path := fmt.Sprintf("./static/UserFiles/%d/", id)
 	var (
 		postFiles []string
@@ -41,31 +40,31 @@ func (service *PostService) CreatePost(ctx *fiber.Ctx, id uint, postDTO Entities
 			if image, e := filesLib.UploadFile(ctx, file, path+"Images/"); e == nil {
 				postFiles = append(postFiles, image)
 			} else {
-				return errors.New("failed to upload files")
+				return 0, errors.New("failed to upload files")
 			}
 		case ".mp3", ".wav":
 			if music, e := filesLib.UploadFile(ctx, file, path+"Musics/"); e == nil {
 				postFiles = append(postFiles, music)
 			} else {
-				return errors.New("failed to upload files")
+				return 0, errors.New("failed to upload files")
 			}
 		case ".mp4", ".avi":
 			if video, e := filesLib.UploadFile(ctx, file, path+"Videos/"); e == nil {
 				postFiles = append(postFiles, video)
 			} else {
-				return errors.New("failed to upload files")
+				return 0, errors.New("failed to upload files")
 			}
 		default:
 			if other, e := filesLib.UploadFile(ctx, file, path+"Others/"); e == nil {
 				postFiles = append(postFiles, other)
 			} else {
-				return errors.New("failed to upload files")
+				return 0, errors.New("failed to upload files")
 			}
 		}
 	}
 
 	postDTO.Files = postFiles
-	return service.repository.CreateAPost(ctx.Context(), id, postDTO, surveyDTO, NewDate())
+	return service.repository.CreatePost(ctx.Context(), id, postDTO, surveyDTO, NewDate())
 }
 
 func (service *PostService) GetPostsByUserID(ctx context.Context, userID uint, offset uint) ([]Entities.Post, []Entities.Survey, error) {

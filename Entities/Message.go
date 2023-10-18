@@ -20,5 +20,5 @@ type MessageDTO struct {
 	Data            string   `json:"data" binding:"required"`
 	Files           []string `json:"files" binding:"required"`
 	MessageParentID uint     `json:"message_parent_id"`
-	Date            string   `json:"date"`
+	Date            int64    `json:"date"`
 }

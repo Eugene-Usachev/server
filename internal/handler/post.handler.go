@@ -32,29 +32,35 @@ func (handler *Handler) createPost(c *fiber.Ctx) error {
 
 	form, err := c.MultipartForm()
 	if err != nil {
+		handler.Logger.Error("Create post error:", err.Error())
 		return NewErrorResponse(c, fiber.StatusBadRequest, "Error processing form data")
 	}
 
 	post := form.Value["post"]
 	if post == nil {
+		handler.Logger.Error("Create post error:", err.Error())
 		return NewErrorResponse(c, fiber.StatusBadRequest, "Error: Missing post value")
 	}
 
-	var postDTO Entities.CreateAPostDTO
+	var postDTO Entities.CreatePostDTO
 	err = json.Unmarshal([]byte(post[0]), &postDTO)
 	if err != nil {
+		handler.Logger.Error("Create post error:", err.Error())
 		return NewErrorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
 
 	survey := form.Value["survey"]
-	var surveyDTO Entities.CreateASurveyDTO
+	var surveyDTO Entities.CreateSurveyDTO
 	if survey != nil && survey[0] != "" {
 		err = json.Unmarshal([]byte(survey[0]), &surveyDTO)
+		if surveyDTO.Background > 13 {
+			surveyDTO.Background = 0
+		}
 		if err != nil {
 			return NewErrorResponse(c, fiber.StatusBadRequest, err.Error())
 		}
 	} else {
-		surveyDTO = Entities.CreateASurveyDTO{}
+		surveyDTO = Entities.CreateSurveyDTO{}
 	}
 
 	files := form.File["files"]
@@ -62,13 +68,15 @@ func (handler *Handler) createPost(c *fiber.Ctx) error {
 		files = files[:10]
 	}
 
-	err = handler.services.Post.CreatePost(c, userID, postDTO, surveyDTO, files)
+	var id uint
+
+	id, err = handler.services.Post.CreatePost(c, userID, postDTO, surveyDTO, files)
 	if err != nil {
 		handler.Logger.Error("create post error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"message": "Post and files created successfully"})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"id": id})
 }
 
 func (handler *Handler) getPostsByUserID(c *fiber.Ctx) error {
@@ -127,6 +135,7 @@ func (handler *Handler) dislikePost(c *fiber.Ctx) error {
 	userID, postID := getPostAndUserID(c)
 	err := handler.services.Post.DislikePost(ctx2, userID, postID)
 	if err != nil {
+		handler.Logger.Error("dislike post error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 

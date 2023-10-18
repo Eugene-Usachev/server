@@ -21,7 +21,7 @@ func NewPostPostgres(dataBases *DataBases) *PostPostgres {
 
 /*region posts*/
 
-func (repository *PostPostgres) CreateAPost(ctx context.Context, id uint, postDTO Entities.CreateAPostDTO, surveyDTO Entities.CreateASurveyDTO, date string) error {
+func (repository *PostPostgres) CreatePost(ctx context.Context, id uint, postDTO Entities.CreatePostDTO, surveyDTO Entities.CreateSurveyDTO, date int64) (uint, error) {
 	var (
 		postId uint
 	)
@@ -29,7 +29,7 @@ func (repository *PostPostgres) CreateAPost(ctx context.Context, id uint, postDT
 		id, postDTO.Data, postDTO.Files, postDTO.HaveASurvey, date)
 	err := row.Scan(&postId)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if postDTO.HaveASurvey {
@@ -37,7 +37,7 @@ func (repository *PostPostgres) CreateAPost(ctx context.Context, id uint, postDT
 			postId, surveyDTO.Data, surveyDTO.Background, surveyDTO.IsMultiVoices)
 	}
 
-	return err
+	return postId, err
 }
 
 func (repository *PostPostgres) GetPostsByUserID(ctx context.Context, userID uint, offset uint) ([]Entities.Post, []Entities.Survey, error) {
@@ -57,7 +57,7 @@ func (repository *PostPostgres) GetPostsByUserID(ctx context.Context, userID uin
 		var (
 			id          uint
 			data        string
-			date        string
+			date        int64
 			likes       uint
 			likedBy     []int32
 			dislikes    uint
@@ -75,15 +75,15 @@ func (repository *PostPostgres) GetPostsByUserID(ctx context.Context, userID uin
 			necessarySurveys = append(necessarySurveys, id)
 		}
 		posts = append(posts, Entities.Post{
-			ID:          id,
-			Likes:       likes,
-			LikedBy:     likedBy,
-			Dislikes:    dislikes,
-			DislikedBy:  dislikedBy,
-			Data:        data,
-			Date:        date,
-			Files:       files,
-			HaveASurvey: haveASurvey,
+			ID:         id,
+			Likes:      likes,
+			LikedBy:    likedBy,
+			Dislikes:   dislikes,
+			DislikedBy: dislikedBy,
+			Data:       data,
+			Date:       date,
+			Files:      files,
+			HaveSurvey: haveASurvey,
 		})
 	}
 
@@ -124,7 +124,7 @@ func (repository *PostPostgres) GetPostsByUserID(ctx context.Context, userID uin
 				SL9V          int
 				SL9VBY        []int32
 				VotedBy       []int32
-				Background    string
+				Background    uint8
 				IsMultiVoices bool
 			)
 			err = rows.Scan(&ParentPostID, &Data, &SL0V, &SL1V, &SL2V, &SL3V, &SL4V, &SL5V, &SL6V, &SL7V, &SL8V, &SL9V,
@@ -218,7 +218,7 @@ func (repository *PostPostgres) GetCommentsByPostId(ctx context.Context, postId 
 	return comments, nil
 }
 
-func (repository *PostPostgres) CreateComment(ctx context.Context, userId uint, comment Entities.CommentDTO, date string) (commentId uint, err error) {
+func (repository *PostPostgres) CreateComment(ctx context.Context, userId uint, comment Entities.CommentDTO, date int64) (commentId uint, err error) {
 	var row pgx.Row
 	if comment.ParentCommentId > 1 {
 		row = repository.dataBases.Postgres.QueryRow(ctx, `INSERT INTO comments (parent_post_id, data, date, parent_user_id, files, parent_comment_id)

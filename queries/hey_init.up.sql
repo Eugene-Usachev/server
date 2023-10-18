@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS posts (
      dislikes       int           default 0,
      disliked_by    integer[]     default ARRAY []::integer[] [],
      data           varchar(512),
-     date           varchar(32),
+     date           int8,
      files          text []       default ARRAY[]::text[] [],
      have_a_survey  bool
 );
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS surveys (
        sl8v            int         default 0,
        sl9vby          int[]       default ARRAY[]::int[] [],
        sl9v            int         default 0,
-       background      varchar(64) default 'common',
+       background      int         default 0,
        voted_by        integer []  default ARRAY[]::integer[] [],
        is_multiVoices  bool        default false
 );
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS comments (
     id                  serial        NOT NULL PRIMARY KEY,
     parent_post_id      int           NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
     data                varchar(128),
-    date                varchar(32),
+    date                int8,
     parent_user_id      int           NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     likes               int           default 0,
     likes_by            integer []    default ARRAY[]::integer[] [],
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS messages (
     parent_chat_id    int           NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
     parent_user_id	  int           NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     data              varchar(256),
-    date              varchar(32),
+    date              int8          default 0,
     files             text []       default ARRAY[]::text[] [],
     message_parent_id int
 );

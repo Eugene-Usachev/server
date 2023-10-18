@@ -39,7 +39,7 @@ type Post interface {
 
 	/*region post*/
 
-	CreatePost(ctx *fiber.Ctx, id uint, postDTO Entities.CreateAPostDTO, surveyDTO Entities.CreateASurveyDTO, files []*multipart.FileHeader) error
+	CreatePost(ctx *fiber.Ctx, id uint, postDTO Entities.CreatePostDTO, surveyDTO Entities.CreateSurveyDTO, files []*multipart.FileHeader) (uint, error)
 	GetPostsByUserID(ctx context.Context, userID uint, offset uint) ([]Entities.Post, []Entities.Survey, error)
 	LikePost(ctx context.Context, userId, postId uint) error
 	UnlikePost(ctx context.Context, userId, postId uint) error
@@ -70,8 +70,8 @@ type Post interface {
 }
 
 type Message interface {
-	SaveMessage(ctx context.Context, userId uint, messageDTO Entities.MessageDTO) (uint, []uint, string, error)
-	UpdateMessage(ctx context.Context, messageId uint, userId uint, newData string) ([]uint, error)
+	SaveMessage(ctx context.Context, userId uint, messageDTO Entities.MessageDTO) (uint, []uint, int64, error)
+	UpdateMessage(ctx context.Context, messageId uint, userId uint, newData int64) ([]uint, error)
 	DeleteMessage(ctx context.Context, messageId uint, userId uint) ([]uint, error)
 	GetLastMessages(ctx context.Context, userId uint, chatsId string) ([]Entities.Message, error)
 	GetMessages(ctx context.Context, chatId, offset uint) ([20]Entities.Message, error)

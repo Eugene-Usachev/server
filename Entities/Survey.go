@@ -29,12 +29,12 @@ type Survey struct {
 	SL9V          int      `json:"sl9v"`
 	SL9VBY        []int32  `json:"sl9vby"`
 	VotedBy       []int32  `json:"voted_by"`
-	Background    string   `json:"background"`
+	Background    uint8    `json:"background"`
 	IsMultiVoices bool     `json:"is_multi_voices"`
 }
 
-type CreateASurveyDTO struct {
+type CreateSurveyDTO struct {
 	Data          []string `json:"data"`
-	Background    string   `json:"background"`
+	Background    uint8    `json:"background"`
 	IsMultiVoices bool     `json:"is_multi_voices"`
 }

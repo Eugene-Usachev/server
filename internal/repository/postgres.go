@@ -45,7 +45,7 @@ func NewPostgresDB(ctx context.Context, maxAttempts uint8, cfg Config, logger *P
 	}
 
 	log.Println("creating tables for postgres")
-	err = createTables(ctx, pool)
+	err = createTablesAndIndexes(ctx, pool)
 	if err != nil {
 		log.Println(err)
 	} else {
@@ -55,7 +55,7 @@ func NewPostgresDB(ctx context.Context, maxAttempts uint8, cfg Config, logger *P
 	return pool, nil
 }
 
-func createTables(ctx context.Context, pool *pgxpool.Pool) error {
+func createTablesAndIndexes(ctx context.Context, pool *pgxpool.Pool) error {
 	_, err := pool.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS users (
 			id                    serial         NOT NULL PRIMARY KEY,
@@ -90,7 +90,7 @@ func createTables(ctx context.Context, pool *pgxpool.Pool) error {
 			 dislikes       int           default 0,
 			 disliked_by    integer[]     default ARRAY []::integer[] [],
 			 data           varchar(512),
-			 date           varchar(32),
+			 date           int8,
 			 files          text []       default ARRAY[]::text[] [],
 			 have_a_survey  bool
 		);
@@ -120,7 +120,7 @@ func createTables(ctx context.Context, pool *pgxpool.Pool) error {
 			   sl8v            int         default 0,
 			   sl9vby          int[]       default ARRAY[]::int[] [],
 			   sl9v            int         default 0,
-			   background      varchar(64) default 'common',
+			   background      int 		   default 0,
 			   voted_by        integer []  default ARRAY[]::integer[] [],
 			   is_multiVoices  bool        default false
 		);
@@ -130,7 +130,7 @@ func createTables(ctx context.Context, pool *pgxpool.Pool) error {
 			id                  serial        NOT NULL PRIMARY KEY,
 			parent_post_id      int           NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
 			data                varchar(128),
-			date                varchar(32),
+			date                int8,
 			parent_user_id      int           NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			likes               int           default 0,
 			likes_by            integer []    default ARRAY[]::integer[] [],
@@ -153,7 +153,7 @@ func createTables(ctx context.Context, pool *pgxpool.Pool) error {
 			parent_chat_id    int           NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
 			parent_user_id	  int           NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			data              varchar(256),
-			date              varchar(32),
+			date              int8			default 0,
 			files             text []       default ARRAY[]::text[] [],
 			message_parent_id int
 		);

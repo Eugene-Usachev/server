@@ -8,6 +8,8 @@ github.com/Eugene-Usachev/logger v1.0.0 h1:AONXSIkB5ajdNu90QW2qkM6ounKjaGB0WKthx
 github.com/Eugene-Usachev/logger v1.0.0/go.mod h1:rKyiD58uMVPKHrXp8FxbzSfywBd+76wthIVZXRmUvBA=
 github.com/Eugene-Usachev/logger v1.1.0 h1:1luRb4rwGEWmALoNaPQpd8j3MPV1xXUNrOsKyceBHCo=
 github.com/Eugene-Usachev/logger v1.1.0/go.mod h1:rKyiD58uMVPKHrXp8FxbzSfywBd+76wthIVZXRmUvBA=
+github.com/Eugene-Usachev/logger v1.1.1 h1:XEAyRglOBgjDMV8LkYo1wDLjYpBRV9/BPNAohFopmms=
+github.com/Eugene-Usachev/logger v1.1.1/go.mod h1:rKyiD58uMVPKHrXp8FxbzSfywBd+76wthIVZXRmUvBA=
 github.com/andybalholm/brotli v1.0.5 h1:8uQZIdzKmjc/iuPu7O2ioW48L81FgatrcpfFmiq/cCs=
 github.com/andybalholm/brotli v1.0.5/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=

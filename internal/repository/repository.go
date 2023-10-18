@@ -32,7 +32,7 @@ type User interface {
 
 type Post interface {
 	/*region post*/
-	CreateAPost(ctx context.Context, id uint, postDTO Entities.CreateAPostDTO, surveyDTO Entities.CreateASurveyDTO, date string) error
+	CreatePost(ctx context.Context, id uint, postDTO Entities.CreatePostDTO, surveyDTO Entities.CreateSurveyDTO, date int64) (uint, error)
 	GetPostsByUserID(ctx context.Context, userID uint, offset uint) ([]Entities.Post, []Entities.Survey, error)
 	LikePost(ctx context.Context, userId, postId uint) error
 	UnlikePost(ctx context.Context, userId, postId uint) error
@@ -43,7 +43,7 @@ type Post interface {
 
 	/*region comments*/
 	GetCommentsByPostId(ctx context.Context, postId uint, offset uint) ([]Entities.Comment, error)
-	CreateComment(ctx context.Context, userId uint, comment Entities.CommentDTO, date string) (uint, error)
+	CreateComment(ctx context.Context, userId uint, comment Entities.CommentDTO, date int64) (uint, error)
 	LikeComment(ctx context.Context, userID uint, commentID uint) error
 	UnlikeComment(ctx context.Context, userID uint, commentID uint) error
 	DislikeComment(ctx context.Context, userID uint, commentID uint) error
@@ -59,7 +59,7 @@ type Post interface {
 
 type Message interface {
 	SaveMessage(ctx context.Context, userId uint, messageDTO Entities.MessageDTO) (uint, []uint, error)
-	UpdateMessage(ctx context.Context, messageId, userId uint, newData string) ([]uint, error)
+	UpdateMessage(ctx context.Context, messageId, userId uint, newData int64) ([]uint, error)
 	DeleteMessage(ctx context.Context, messageId, userId uint) ([]uint, error)
 	GetLastMessages(ctx context.Context, userId uint, chatsId string) ([]Entities.Message, error)
 	GetMessages(ctx context.Context, chatId, offset uint) ([20]Entities.Message, error)

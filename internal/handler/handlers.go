@@ -61,23 +61,27 @@ func (handler *Handler) InitMiddlewares(app *fiber.App) {
 	if disableMetrics == "true" {
 		app.Use(func(c *fiber.Ctx) error {
 			startTime := time.Now()
-			c.Next()
-			end := time.Since(startTime)
+			err := c.Next()
+			end := time.Since(startTime).Microseconds()
 			method := c.Method()
 			path := c.Path()
 			statusCode := c.Response().StatusCode()
-			handler.Logger.FormatInfo("request | %-7s | %-42s | %d | %-21d microseconds |\n", method, path, statusCode, end)
+			if err != nil {
+				handler.Logger.FormatInfo("request | %-7s | %-42s | %d | %-12d microseconds |\n", method, path, 500, end)
+				return err
+			}
+			handler.Logger.FormatInfo("request | %-7s | %-42s | %d | %-12d microseconds |\n", method, path, statusCode, end)
 			return nil
 		})
 	} else {
 		app.Use(func(c *fiber.Ctx) error {
 			startTime := time.Now()
 			c.Next()
-			end := time.Since(startTime)
+			end := time.Since(startTime).Microseconds()
 			method := c.Method()
 			path := c.Path()
 			statusCode := c.Response().StatusCode()
-			handler.Logger.FormatInfo("request | %-7s | %-42s | %d | %-21d microseconds |\n", method, path, statusCode, end)
+			handler.Logger.FormatInfo("request | %-7s | %-42s | %d | %-12d microseconds |\n", method, path, statusCode, end)
 			metrics.ObserveRequest(float64(end), method, path, statusCode)
 			return nil
 		})

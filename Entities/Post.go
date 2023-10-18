@@ -11,12 +11,14 @@ type Post struct {
 	Dislikes     uint     `json:"dislikes"`
 	DislikedBy   []int32  `json:"disliked_by"`
 	Data         string   `json:"data"`
-	Date         string   `json:"date"`
+	Date         int64    `json:"date"`
 	Files        []string `json:"files"`
-	HaveASurvey  bool     `json:"have_survey"`
+	HaveSurvey   bool     `json:"have_survey"`
+	// TODO
+	//IsVisibleForAll bool `json:"is_visible_for_all"`
 }
 
-type CreateAPostDTO struct {
+type CreatePostDTO struct {
 	Data        string   `json:"data" binding:"required"`
 	Files       []string `json:"files" binding:"required"`
 	HaveASurvey bool     `json:"have_survey" binding:"required"`
