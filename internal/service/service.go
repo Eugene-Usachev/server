@@ -40,7 +40,7 @@ type Post interface {
 	/*region post*/
 
 	CreatePost(ctx *fiber.Ctx, id uint, postDTO Entities.CreatePostDTO, surveyDTO Entities.CreateSurveyDTO, files []*multipart.FileHeader) (uint, error)
-	GetPostsByUserID(ctx context.Context, userID uint, offset uint) ([]Entities.Post, []Entities.Survey, error)
+	GetPostsByUserID(ctx context.Context, userID uint, offset uint, clientId uint) ([]Entities.GetPostDTO, []Entities.GetSurveyDTO, error)
 	LikePost(ctx context.Context, userId, postId uint) error
 	UnlikePost(ctx context.Context, userId, postId uint) error
 	DislikePost(ctx context.Context, userId, postId uint) error
@@ -64,7 +64,7 @@ type Post interface {
 
 	/*region survey*/
 
-	VoteInSurvey(ctx context.Context, userId uint, surveyId uint, votedFor []uint8) error
+	VoteInSurvey(ctx context.Context, userId uint, surveyId uint, votedFor uint16) error
 
 	/*endregion*/
 }
@@ -100,14 +100,14 @@ type Service struct {
 	Chat
 }
 
-type ServiceConfig struct {
+type Config struct {
 	Repository       *repository.Repository
 	Logger           *logger.FastLogger
 	AccessConverter  *fst.Converter
 	RefreshConverter *fst.Converter
 }
 
-func NewService(cfg *ServiceConfig) *Service {
+func NewService(cfg *Config) *Service {
 	return &Service{
 		Authorization: NewAuthService(&AuthServiceConfig{
 			repository:       cfg.Repository.Authorization,

@@ -2,7 +2,9 @@ package handler
 
 import (
 	"GoServer/Entities"
-	"encoding/json"
+	utils "GoServer/pkg/fasthttp_utils"
+	"github.com/Eugene-Usachev/fastbytes"
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 	"strconv"
 )
@@ -94,7 +96,16 @@ func (handler *Handler) getPostsByUserID(c *fiber.Ctx) error {
 		return NewErrorResponse(c, fiber.StatusBadRequest, "nothing to get")
 	}
 
-	posts, surveys, err := handler.services.Post.GetPostsByUserID(c.Context(), uint(authorID), uint(offset))
+	var id uint = 0
+	auth := utils.GetAuthorizationHeader(c.Context())
+	if auth != nil {
+		idB, err := handler.accessConverter.ParseToken(fastbytes.B2S(auth))
+		if err == nil {
+			id = fastbytes.B2U(idB)
+		}
+	}
+
+	posts, surveys, err := handler.services.Post.GetPostsByUserID(c.Context(), uint(authorID), uint(offset), id)
 	if err != nil {
 		handler.Logger.Error("get posts by user id error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
@@ -327,14 +338,19 @@ func (handler *Handler) voteInSurvey(ctx *fiber.Ctx) error {
 	userId, surveyId := getSurveyAndUserId(ctx)
 
 	var votedFor struct {
-		VotedFor []uint8 `json:"voted_for" binding:"required"`
+		VotedFor uint16 `json:"voted_for" binding:"required"`
 	}
 
-	if err := ctx.BodyParser(&votedFor); err != nil || len(votedFor.VotedFor) == 0 {
-		return NewErrorResponse(ctx, fiber.StatusBadRequest, `invalid voted for`)
+	err := json.Unmarshal(ctx.Body(), &votedFor)
+	if err != nil {
+		return NewErrorResponse(ctx, fiber.StatusBadRequest, err.Error())
 	}
 
-	err := handler.services.Post.VoteInSurvey(ctx.Context(), userId, surveyId, votedFor.VotedFor)
+	if votedFor.VotedFor == 0 {
+		return ctx.SendStatus(fiber.StatusNoContent)
+	}
+
+	err = handler.services.Post.VoteInSurvey(ctx.Context(), userId, surveyId, votedFor.VotedFor)
 	if err != nil {
 		handler.Logger.Error("vote in survey error: " + err.Error())
 		return NewErrorResponse(ctx, fiber.StatusInternalServerError, err.Error())

@@ -33,6 +33,26 @@ type Survey struct {
 	IsMultiVoices bool     `json:"is_multi_voices"`
 }
 
+type GetSurveyDTO struct {
+	//Primary key
+	ParentPostID uint     `json:"parent_post_id"`
+	Data         []string `json:"data"`
+	SL0V         uint     `json:"sl0v"`
+	SL1V         uint     `json:"sl1v"`
+	SL2V         uint     `json:"sl2v"`
+	SL3V         uint     `json:"sl3v"`
+	SL4V         uint     `json:"sl4v"`
+	SL5V         uint     `json:"sl5v"`
+	SL6V         uint     `json:"sl6v"`
+	SL7V         uint     `json:"sl7v"`
+	SL8V         uint     `json:"sl8v"`
+	SL9V         uint     `json:"sl9v"`
+	// Bits flags. Like 1000000000000000 means that user has voted for first line.
+	VotedFor      uint16 `json:"voted_for"`
+	Background    uint8  `json:"background"`
+	IsMultiVoices bool   `json:"is_multi_voices"`
+}
+
 type CreateSurveyDTO struct {
 	Data          []string `json:"data"`
 	Background    uint8    `json:"background"`

@@ -17,7 +17,7 @@ func NewMessagePostgres(dataBases *DataBases) *MessagePostgres {
 }
 
 func (repository *MessagePostgres) SaveMessage(ctx context.Context, userId uint, messageDTO Entities.MessageDTO) (uint, []uint, error) {
-	tx, err := repository.dataBases.Postgres.Begin(ctx)
+	tx, err := repository.dataBases.Postgres.pool.Begin(ctx)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -57,7 +57,7 @@ func (repository *MessagePostgres) SaveMessage(ctx context.Context, userId uint,
 
 func (repository *MessagePostgres) UpdateMessage(ctx context.Context, messageId, userId uint, newData int64) ([]uint, error) {
 	var members []uint
-	row := repository.dataBases.Postgres.QueryRow(ctx, `
+	row := repository.dataBases.Postgres.pool.QueryRow(ctx, `
 		WITH new_message AS (
 			UPDATE messages SET data = $3
 				WHERE id = $2 AND parent_user_id = $1 RETURNING parent_chat_id
@@ -73,7 +73,7 @@ func (repository *MessagePostgres) UpdateMessage(ctx context.Context, messageId,
 }
 
 func (repository *MessagePostgres) DeleteMessage(ctx context.Context, messageId, userId uint) ([]uint, error) {
-	row := repository.dataBases.Postgres.QueryRow(ctx, `
+	row := repository.dataBases.Postgres.pool.QueryRow(ctx, `
 		WITH chat_id AS (
 		    DELETE FROM messages WHERE id = $1 AND parent_user_id = $2 RETURNING parent_chat_id
 		)
@@ -89,7 +89,7 @@ func (repository *MessagePostgres) DeleteMessage(ctx context.Context, messageId,
 func (repository *MessagePostgres) GetLastMessages(ctx context.Context, userId uint, chatsId string) ([]Entities.Message, error) {
 	var array = []Entities.Message{}
 
-	rows, err := repository.dataBases.Postgres.Query(ctx, `
+	rows, err := repository.dataBases.Postgres.pool.Query(ctx, `
 		SELECT id FROM chats WHERE $1 = ANY(members) AND id IN `+chatsId+`
 	`, userId)
 	if err != nil {
@@ -106,7 +106,7 @@ func (repository *MessagePostgres) GetLastMessages(ctx context.Context, userId u
 		chatsWhereUserIsMember = append(chatsWhereUserIsMember, chatId)
 	}
 
-	rows, err = repository.dataBases.Postgres.Query(ctx, `
+	rows, err = repository.dataBases.Postgres.pool.Query(ctx, `
 		SELECT t1.* FROM messages t1
 		INNER JOIN (
 			SELECT parent_chat_id, max(id) as lastID 
@@ -139,7 +139,7 @@ func (repository *MessagePostgres) GetMessages(ctx context.Context, chatId, offs
 		i     uint8 = 0
 	)
 
-	rows, err = repository.dataBases.Postgres.Query(ctx, `
+	rows, err = repository.dataBases.Postgres.pool.Query(ctx, `
 		SELECT id, parent_chat_id, parent_user_id, files, data, date, message_parent_id 
 			FROM messages
 			WHERE parent_chat_id = $2

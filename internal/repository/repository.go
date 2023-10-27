@@ -1,8 +1,10 @@
+// TODO we not a SOLID! We use raw Postgres in repository (not an interface)!
 package repository
 
 import (
 	"GoServer/Entities"
 	"context"
+	"github.com/Eugene-Usachev/logger"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/rueidis"
 )
@@ -33,7 +35,7 @@ type User interface {
 type Post interface {
 	/*region post*/
 	CreatePost(ctx context.Context, id uint, postDTO Entities.CreatePostDTO, surveyDTO Entities.CreateSurveyDTO, date int64) (uint, error)
-	GetPostsByUserID(ctx context.Context, userID uint, offset uint) ([]Entities.Post, []Entities.Survey, error)
+	GetPostsByUserID(ctx context.Context, userID uint, offset uint, clientId uint) ([]Entities.GetPostDTO, []Entities.GetSurveyDTO, error)
 	LikePost(ctx context.Context, userId, postId uint) error
 	UnlikePost(ctx context.Context, userId, postId uint) error
 	DislikePost(ctx context.Context, userId, postId uint) error
@@ -53,7 +55,7 @@ type Post interface {
 	/*endregion*/
 
 	/*region survey*/
-	VoteInSurvey(ctx context.Context, userId uint, surveyId uint, votedFor []uint8) error
+	VoteInSurvey(ctx context.Context, userId uint, surveyId uint, votedFor uint16) error
 	/*endregion*/
 }
 
@@ -88,15 +90,25 @@ type Repository struct {
 	Chat
 }
 
-type DataBases struct {
-	Postgres *pgxpool.Pool
-	Redis    *rueidis.Client
+type Postgres struct {
+	pool   *pgxpool.Pool
+	logger *logger.FastLogger
 }
 
-func NewDataBases(pool *pgxpool.Pool, redis *rueidis.Client) *DataBases {
+type Redis struct {
+	client rueidis.Client
+	logger *logger.FastLogger
+}
+
+type DataBases struct {
+	Postgres *Postgres
+	Redis    *Redis
+}
+
+func NewDataBases(pool *pgxpool.Pool, postgresLogger *logger.FastLogger, redis rueidis.Client, redisLogger *logger.FastLogger) *DataBases {
 	return &DataBases{
-		Postgres: pool,
-		Redis:    redis,
+		Postgres: &Postgres{pool: pool, logger: postgresLogger},
+		Redis:    &Redis{client: redis, logger: redisLogger},
 	}
 }
 

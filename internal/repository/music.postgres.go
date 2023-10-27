@@ -23,7 +23,7 @@ func (repository *MusicPostgres) GetMusics(ctx context.Context, name string, off
 
 	name = "%" + name + "%"
 
-	rows, err := repository.dataBases.Postgres.Query(ctx, `SELECT * FROM musics WHERE author LIKE $1 OR title LIKE $1
+	rows, err := repository.dataBases.Postgres.pool.Query(ctx, `SELECT * FROM musics WHERE author LIKE $1 OR title LIKE $1
                      ORDER BY number_of_eavesdroppers DESC LIMIT 20 OFFSET $2`, name, offset)
 	if err != nil {
 		return musics, err
@@ -45,7 +45,7 @@ func (repository *MusicPostgres) GetMusic(ctx context.Context, id uint) (uint, s
 		title        string
 		parentUserID uint
 	)
-	err := repository.dataBases.Postgres.QueryRow(ctx, `UPDATE musics SET number_of_eavesdroppers = number_of_eavesdroppers + 1 WHERE id = $1 RETURNING title, parent_user_id`,
+	err := repository.dataBases.Postgres.pool.QueryRow(ctx, `UPDATE musics SET number_of_eavesdroppers = number_of_eavesdroppers + 1 WHERE id = $1 RETURNING title, parent_user_id`,
 		id).Scan(&title, &parentUserID)
 	if err != nil {
 		return 0, "", err
@@ -56,7 +56,7 @@ func (repository *MusicPostgres) GetMusic(ctx context.Context, id uint) (uint, s
 
 func (repository *MusicPostgres) AddMusic(ctx context.Context, id uint, music Entities.CreateMusicDTO) (uint, error) {
 	var musicId uint
-	row := repository.dataBases.Postgres.QueryRow(ctx, `INSERT INTO musics (author, title, parent_user_id) VALUES ($1, $2, $3) RETURNING id`, music.Author, music.Title, id)
+	row := repository.dataBases.Postgres.pool.QueryRow(ctx, `INSERT INTO musics (author, title, parent_user_id) VALUES ($1, $2, $3) RETURNING id`, music.Author, music.Title, id)
 
 	err := row.Scan(&musicId)
 	if err != nil {

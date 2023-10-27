@@ -23,7 +23,7 @@ import (
 func main() {
 	customTime.Start()
 
-	serverLogger, websocketLogger, postgresFastLogger := initLogs()
+	serverLogger, websocketLogger, postgresFastLogger, redisLogger := initLogs()
 
 	pool, err := repository.NewPostgresDB(context.Background(), 12,
 		repository.Config{
@@ -44,7 +44,7 @@ func main() {
 	}
 	serverLogger.Info("connected to redis")
 
-	repositoryImpl := repository.NewRepository(repository.NewDataBases(pool, redisClient))
+	repositoryImpl := repository.NewRepository(repository.NewDataBases(pool, postgresFastLogger, redisClient, redisLogger))
 
 	accessConverter := fst.NewConverter(&fst.ConverterConfig{
 		SecretKey:          fastbytes.S2B(os.Getenv("JWT_SECRET_KEY")),
@@ -61,7 +61,7 @@ func main() {
 		WithExpirationTime: true,
 	})
 
-	serviceImpl := service.NewService(&service.ServiceConfig{
+	serviceImpl := service.NewService(&service.Config{
 		Repository:       repositoryImpl,
 		Logger:           serverLogger,
 		AccessConverter:  accessConverter,
@@ -85,7 +85,7 @@ func main() {
 	}
 }
 
-func initLogs() (*logger.FastLogger, *logger.FastLogger, *logger.FastLogger) {
+func initLogs() (*logger.FastLogger, *logger.FastLogger, *logger.FastLogger, *logger.FastLogger) {
 	serverLogsDir := filepath.Join("../logs", "server_logs")
 	err := os.Mkdir(serverLogsDir, 0777)
 	if err != nil && !errors.Is(err, os.ErrExist) {
@@ -215,5 +215,48 @@ func initLogs() (*logger.FastLogger, *logger.FastLogger, *logger.FastLogger) {
 		FatalFunc:            nil,
 	})
 
-	return handlerLogger, websocketLogger, postgresLogger
+	redisLogsDir := filepath.Join("../logs", "redis_logs")
+	err = os.Mkdir(redisLogsDir, 0777)
+	if err != nil && !errors.Is(err, os.ErrExist) {
+		panic(fmt.Sprintf("failed to create logs dir: %s", err))
+	}
+	filePathInfo = filepath.Join(redisLogsDir, "info.txt")
+	infoFile, _ = os.OpenFile(filePathInfo, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+
+	filePathError = filepath.Join(redisLogsDir, "error.txt")
+	errorFile, _ = os.OpenFile(filePathError, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+
+	filePathWarning = filepath.Join(redisLogsDir, "warning.txt")
+	warningFile, _ = os.OpenFile(filePathWarning, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+
+	filePathSuccess = filepath.Join(redisLogsDir, "success.txt")
+	successFile, _ = os.OpenFile(filePathSuccess, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+
+	filePathRecord = filepath.Join(redisLogsDir, "record.txt")
+	recordFile, _ = os.OpenFile(filePathRecord, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+
+	filePathRaw = filepath.Join(redisLogsDir, "raw.txt")
+	rawFile, _ = os.OpenFile(filePathRaw, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+
+	filePathFatal = filepath.Join(redisLogsDir, "fatal.txt")
+	fatalFile, _ = os.OpenFile(filePathFatal, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+
+	cfg = &logger.StandardLoggerConfig{
+		IsWritingToTheConsole: false,
+		ErrorWriter:           errorFile,
+		WarningWriter:         warningFile,
+		InfoWriter:            infoFile,
+		SuccessWriter:         successFile,
+		FatalWriter:           fatalFile,
+		RecordWriter:          recordFile,
+		RawWriter:             rawFile,
+		ShowDate:              true,
+	}
+	redisLogger := logger.NewFastLogger(&logger.FastLoggerConfig{
+		StandardLoggerConfig: *cfg,
+		FlushInterval:        1 * time.Second,
+		FatalFunc:            nil,
+	})
+
+	return handlerLogger, websocketLogger, postgresLogger, redisLogger
 }

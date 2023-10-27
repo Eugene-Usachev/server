@@ -17,11 +17,11 @@ type WebsocketClient struct {
 	cancel  context.CancelFunc
 }
 
-func NewWebsocketClient(service *service.Service, redisClient *rueidis.Client, accessConverter *fst.Converter, logger *loggerLib.FastLogger) (*WebsocketClient, error) {
+func NewWebsocketClient(service *service.Service, redisClient rueidis.Client, accessConverter *fst.Converter, logger *loggerLib.FastLogger) (*WebsocketClient, error) {
 	hub := NewHub(accessConverter)
 	ctx, cancel := context.WithCancel(context.Background())
 	return &WebsocketClient{
-		redis:   *redisClient,
+		redis:   redisClient,
 		hub:     hub,
 		logger:  logger,
 		handler: newHandler(service),

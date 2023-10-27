@@ -21,7 +21,7 @@ func (repository *UserPostgres) GetUserById(ctx context.Context, id uint) (Entit
 	var (
 		user Entities.GetUserDTO
 	)
-	row := repository.dataBases.Postgres.QueryRow(ctx, `
+	row := repository.dataBases.Postgres.pool.QueryRow(ctx, `
 		SELECT name, surname, avatar, birthday, attitude_to_alcohol, attitude_to_smocking, attitude_to_sport,
 			   family_status, friends, users.subscribers,
 				favourites_books, favourites_films, favourites_games, favourites_meals, description, dreams,
@@ -38,7 +38,7 @@ func (repository *UserPostgres) GetUserById(ctx context.Context, id uint) (Entit
 func (repository *UserPostgres) GetUserSubsIds(ctx context.Context, id uint) ([]uint, error) {
 	var ids = []uint{}
 
-	row := repository.dataBases.Postgres.QueryRow(ctx, `SELECT subscribers FROM users WHERE id = $1`, id)
+	row := repository.dataBases.Postgres.pool.QueryRow(ctx, `SELECT subscribers FROM users WHERE id = $1`, id)
 	if err := row.Scan(&ids); err != nil {
 		return ids, err
 	}
@@ -48,7 +48,7 @@ func (repository *UserPostgres) GetUserSubsIds(ctx context.Context, id uint) ([]
 
 func (repository *UserPostgres) GetFriendsAndSubs(ctx context.Context, clientId, userId uint) (Entities.GetFriendsAndSubsDTO, error) {
 	var DTO Entities.GetFriendsAndSubsDTO
-	row := repository.dataBases.Postgres.QueryRow(ctx, `SELECT name, surname, avatar, friends, subscribers FROM users WHERE id = $1`, userId)
+	row := repository.dataBases.Postgres.pool.QueryRow(ctx, `SELECT name, surname, avatar, friends, subscribers FROM users WHERE id = $1`, userId)
 	if err := row.Scan(&DTO.User.Name, &DTO.User.Surname, &DTO.User.Avatar, &DTO.User.Friends, &DTO.User.Subscribers); err != nil {
 		return Entities.GetFriendsAndSubsDTO{}, err
 	}
@@ -56,7 +56,7 @@ func (repository *UserPostgres) GetFriendsAndSubs(ctx context.Context, clientId,
 	if clientId == 0 {
 		return DTO, nil
 	}
-	row = repository.dataBases.Postgres.QueryRow(ctx, `SELECT name, surname, avatar, friends, subscribers FROM users WHERE id = $1`, clientId)
+	row = repository.dataBases.Postgres.pool.QueryRow(ctx, `SELECT name, surname, avatar, friends, subscribers FROM users WHERE id = $1`, clientId)
 	if err := row.Scan(&DTO.Client.Name, &DTO.Client.Surname, &DTO.Client.Avatar, &DTO.Client.Friends, &DTO.Client.Subscribers); err != nil {
 		return Entities.GetFriendsAndSubsDTO{}, err
 	}
@@ -67,7 +67,7 @@ func (repository *UserPostgres) GetFriendsAndSubs(ctx context.Context, clientId,
 func (repository *UserPostgres) GetUsersForFriendsPage(ctx context.Context, idOfUsers string) ([]Entities.FriendUser, error) {
 	var miniUsers = []Entities.FriendUser{}
 	str := fmt.Sprintf(`SELECT id, name, surname, avatar, subscribers FROM users WHERE id in %s`, idOfUsers)
-	rows, err := repository.dataBases.Postgres.Query(ctx, str)
+	rows, err := repository.dataBases.Postgres.pool.Query(ctx, str)
 	for rows.Next() {
 		var miniUser Entities.FriendUser
 		if err = rows.Scan(&miniUser.ID, &miniUser.Name, &miniUser.Surname, &miniUser.Avatar, &miniUser.Subscribers); err == nil {
@@ -85,7 +85,7 @@ func (repository *UserPostgres) GetUsersForFriendsPage(ctx context.Context, idOf
 func (repository *UserPostgres) GetUsers(ctx context.Context, idOfUsers string) ([]Entities.MiniUser, error) {
 	var miniUsers []Entities.MiniUser = []Entities.MiniUser{}
 	str := fmt.Sprintf(`SELECT id, name, surname, avatar FROM users WHERE id in %s`, idOfUsers)
-	rows, err := repository.dataBases.Postgres.Query(ctx, str)
+	rows, err := repository.dataBases.Postgres.pool.Query(ctx, str)
 	for rows.Next() {
 		var miniUser Entities.MiniUser
 		if err = rows.Scan(&miniUser.ID, &miniUser.Name, &miniUser.Surname, &miniUser.Avatar); err == nil {
@@ -102,7 +102,7 @@ func (repository *UserPostgres) GetUsers(ctx context.Context, idOfUsers string) 
 
 func (repository *UserPostgres) UpdateUser(ctx context.Context, id uint, UpdateUserDTO Entities.UpdateUserDTO) error {
 	var err error
-	_, err = repository.dataBases.Postgres.Exec(ctx, `UPDATE users SET favourites_films=$2, favourites_books=$3,
+	_, err = repository.dataBases.Postgres.pool.Exec(ctx, `UPDATE users SET favourites_films=$2, favourites_books=$3,
 		 favourites_games=$4, dreams = $5,attitude_to_sport =$6, attitude_to_alcohol =$7, attitude_to_smocking =$8 ,
 		 place_of_residence =$9, family_status =$10,name =$11, surname=$12, birthday=$13, favourites_meals=$14, description=$15 WHERE id = $1`,
 		id, UpdateUserDTO.Favourites_films, UpdateUserDTO.Favourites_books, UpdateUserDTO.Favourites_games,
@@ -114,7 +114,7 @@ func (repository *UserPostgres) UpdateUser(ctx context.Context, id uint, UpdateU
 
 func (repository *UserPostgres) ChangeAvatar(ctx context.Context, id uint, fileName string) error {
 	var err error
-	_, err = repository.dataBases.Postgres.Exec(ctx, `UPDATE users SET avatar=$1 WHERE id = $2`, fileName, id)
+	_, err = repository.dataBases.Postgres.pool.Exec(ctx, `UPDATE users SET avatar=$1 WHERE id = $2`, fileName, id)
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func (repository *UserPostgres) ChangeAvatar(ctx context.Context, id uint, fileN
 }
 
 func (repository *UserPostgres) AddToFriends(ctx context.Context, id, body uint) error {
-	tx, err := repository.dataBases.Postgres.Begin(ctx)
+	tx, err := repository.dataBases.Postgres.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,7 @@ func (repository *UserPostgres) AddToFriends(ctx context.Context, id, body uint)
 }
 
 func (repository *UserPostgres) DeleteFromFriends(ctx context.Context, id, body uint) error {
-	tx, err := repository.dataBases.Postgres.Begin(ctx)
+	tx, err := repository.dataBases.Postgres.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ func (repository *UserPostgres) DeleteFromFriends(ctx context.Context, id, body 
 func (repository *UserPostgres) AddToSubs(ctx context.Context, id, body uint) error {
 	var result bool
 
-	row := repository.dataBases.Postgres.QueryRow(ctx, `
+	row := repository.dataBases.Postgres.pool.QueryRow(ctx, `
 		UPDATE users SET subscribers = array_append(subscribers, $1) WHERE id = $2 AND array_position(subscribers , $1) IS NULL RETURNING TRUE;
 	`, id, body)
 	if err := row.Scan(&result); err != nil {
@@ -205,7 +205,7 @@ func (repository *UserPostgres) AddToSubs(ctx context.Context, id, body uint) er
 
 func (repository *UserPostgres) DeleteFromSubs(ctx context.Context, id, body uint) error {
 
-	_, err := repository.dataBases.Postgres.Exec(ctx, `
+	_, err := repository.dataBases.Postgres.pool.Exec(ctx, `
 		UPDATE users SET subscribers = array_remove(subscribers, $1) WHERE id = $2;
 	`, id, body)
 	if err != nil {
@@ -216,7 +216,7 @@ func (repository *UserPostgres) DeleteFromSubs(ctx context.Context, id, body uin
 }
 
 func (repository *UserPostgres) DeleteUser(ctx context.Context, id uint) error {
-	_, err := repository.dataBases.Postgres.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
+	_, err := repository.dataBases.Postgres.pool.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}

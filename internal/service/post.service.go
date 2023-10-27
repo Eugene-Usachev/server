@@ -67,8 +67,8 @@ func (service *PostService) CreatePost(ctx *fiber.Ctx, id uint, postDTO Entities
 	return service.repository.CreatePost(ctx.Context(), id, postDTO, surveyDTO, NewDate())
 }
 
-func (service *PostService) GetPostsByUserID(ctx context.Context, userID uint, offset uint) ([]Entities.Post, []Entities.Survey, error) {
-	return service.repository.GetPostsByUserID(ctx, userID, offset)
+func (service *PostService) GetPostsByUserID(ctx context.Context, userID uint, offset uint, clientId uint) ([]Entities.GetPostDTO, []Entities.GetSurveyDTO, error) {
+	return service.repository.GetPostsByUserID(ctx, userID, offset, clientId)
 }
 
 func (service *PostService) LikePost(ctx context.Context, userId, postId uint) error {
@@ -124,7 +124,7 @@ func (service *PostService) DeleteComment(ctx context.Context, userID uint, comm
 
 /*region Survey*/
 
-func (service *PostService) VoteInSurvey(ctx context.Context, userId uint, surveyId uint, votedFor []uint8) error {
+func (service *PostService) VoteInSurvey(ctx context.Context, userId uint, surveyId uint, votedFor uint16) error {
 	return service.repository.VoteInSurvey(ctx, userId, surveyId, votedFor)
 }
 

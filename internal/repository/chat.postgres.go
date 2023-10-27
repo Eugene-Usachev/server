@@ -16,7 +16,7 @@ func NewChatPostgres(dataBases *DataBases) *ChatPostgres {
 }
 
 func (repository *ChatPostgres) CreateChat(ctx context.Context, chatDTO Entities.ChatDTO) (uint, error) {
-	tx, err := repository.dataBases.Postgres.Begin(ctx)
+	tx, err := repository.dataBases.Postgres.pool.Begin(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -41,7 +41,7 @@ func (repository *ChatPostgres) CreateChat(ctx context.Context, chatDTO Entities
 
 func (repository *ChatPostgres) UpdateChat(ctx context.Context, userId, chatId uint, chatDTO Entities.ChatUpdateDTO) error {
 	var isOk bool
-	row := repository.dataBases.Postgres.QueryRow(ctx, `UPDATE chats SET name = $1, avatar = $2, members = $3
+	row := repository.dataBases.Postgres.pool.QueryRow(ctx, `UPDATE chats SET name = $1, avatar = $2, members = $3
              WHERE id = $4 AND $5=ANY(members) RETURNING TRUE`, chatDTO.Name, chatDTO.Avatar, chatDTO.Members, chatId, userId)
 
 	if err := row.Scan(&isOk); err != nil {
@@ -53,7 +53,7 @@ func (repository *ChatPostgres) UpdateChat(ctx context.Context, userId, chatId u
 
 func (repository *ChatPostgres) DeleteChat(ctx context.Context, userId, chatId uint) ([]uint, error) {
 	var members []uint
-	row := repository.dataBases.Postgres.QueryRow(ctx, `DELETE FROM chats WHERE id = $1 AND $2 = ANY(members) RETURNING members`, chatId, userId)
+	row := repository.dataBases.Postgres.pool.QueryRow(ctx, `DELETE FROM chats WHERE id = $1 AND $2 = ANY(members) RETURNING members`, chatId, userId)
 	if err := row.Scan(&members); err != nil {
 		return []uint{}, err
 	}
@@ -73,7 +73,7 @@ func (repository *ChatPostgres) GetChats(ctx context.Context, userId uint) (stri
 		subscribers = []uint{}
 		allChats    = []uint{}
 	)
-	err = repository.dataBases.Postgres.QueryRow(ctx, `
+	err = repository.dataBases.Postgres.pool.QueryRow(ctx, `
 		SELECT chat_lists, all_chats, avatar, name, surname, subscribers, friends
 		FROM users
 		WHERE id = $1
@@ -88,7 +88,7 @@ func (repository *ChatPostgres) GetChats(ctx context.Context, userId uint) (stri
 
 	chats := make([]Entities.Chat, 0, len(allChats))
 
-	rows, err := repository.dataBases.Postgres.Query(ctx, `
+	rows, err := repository.dataBases.Postgres.pool.Query(ctx, `
 		SELECT id, name, avatar, members
 		FROM chats
 		WHERE id = ANY ($1)
@@ -110,6 +110,6 @@ func (repository *ChatPostgres) GetChats(ctx context.Context, userId uint) (stri
 }
 
 func (repository *ChatPostgres) UpdateChatLists(ctx context.Context, id uint, newChatLists string) error {
-	_, err := repository.dataBases.Postgres.Exec(ctx, `UPDATE users SET chat_lists=$2 WHERE id=$1`, id, newChatLists)
+	_, err := repository.dataBases.Postgres.pool.Exec(ctx, `UPDATE users SET chat_lists=$2 WHERE id=$1`, id, newChatLists)
 	return err
 }

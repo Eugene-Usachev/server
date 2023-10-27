@@ -18,6 +18,20 @@ type Post struct {
 	//IsVisibleForAll bool `json:"is_visible_for_all"`
 }
 
+type GetPostDTO struct {
+	ID       uint `json:"id"`
+	Likes    uint `json:"likes"`
+	Dislikes uint `json:"dislikes"`
+	// -1 - disliked, 0 - none, 1 - liked
+	LikeStatus int8     `json:"likes_status"`
+	Data       string   `json:"data"`
+	Date       int64    `json:"date"`
+	Files      []string `json:"files"`
+	HaveSurvey bool     `json:"have_survey"`
+	// TODO
+	//IsVisibleForAll bool `json:"is_visible_for_all"`
+}
+
 type CreatePostDTO struct {
 	Data        string   `json:"data" binding:"required"`
 	Files       []string `json:"files" binding:"required"`
