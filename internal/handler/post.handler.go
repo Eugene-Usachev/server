@@ -105,7 +105,7 @@ func (handler *Handler) getPostsByUserID(c *fiber.Ctx) error {
 		}
 	}
 
-	posts, surveys, err := handler.services.Post.GetPostsByUserID(c.Context(), uint(authorID), uint(offset), id)
+	posts, surveys, err := handler.services.Post.GetPostsByUserId(c.Context(), uint(authorID), uint(offset), id)
 	if err != nil {
 		handler.Logger.Error("get posts by user id error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
@@ -207,24 +207,33 @@ func (handler *Handler) getCommentsByPostId(c *fiber.Ctx) error {
 		return NewErrorResponse(c, fiber.StatusBadRequest, "invalid post id")
 	}
 
-	comments, err := handler.services.Post.GetCommentsByPostId(c.Context(), uint(postId), uint(offset))
+	var clientId uint = 0
+	auth := utils.GetAuthorizationHeader(c.Context())
+	if auth != nil {
+		idB, err := handler.accessConverter.ParseToken(fastbytes.B2S(auth))
+		if err == nil {
+			clientId = fastbytes.B2U(idB)
+		}
+	}
+
+	comments, err := handler.services.Post.GetCommentsByPostId(c.Context(), uint(postId), uint(offset), clientId)
 	if err != nil {
 		handler.Logger.Error("get comments by post id error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"comments": comments,
-	})
+	return c.Status(fiber.StatusOK).JSON(comments)
 }
 
 func (handler *Handler) createComment(c *fiber.Ctx) error {
 	userId, postId := getPostAndUserID(c)
 	var commentDTO Entities.CommentDTO
 
-	if err := c.BodyParser(&commentDTO); err != nil {
+	if err := json.Unmarshal(c.Body(), &commentDTO); err != nil {
 		return NewErrorResponse(c, fiber.StatusBadRequest, err.Error())
 	}
+
+	commentDTO.ParentPostId = postId
 
 	commentId, err := handler.services.Post.CreateComment(c.Context(), userId, postId, commentDTO)
 	if err != nil {
@@ -232,9 +241,7 @@ func (handler *Handler) createComment(c *fiber.Ctx) error {
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"commentId": commentId,
-	})
+	return c.Status(fiber.StatusCreated).JSON(commentId)
 }
 
 func (handler *Handler) likeComment(c *fiber.Ctx) error {

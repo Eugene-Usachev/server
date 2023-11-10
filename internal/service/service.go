@@ -40,7 +40,7 @@ type Post interface {
 	/*region post*/
 
 	CreatePost(ctx *fiber.Ctx, id uint, postDTO Entities.CreatePostDTO, surveyDTO Entities.CreateSurveyDTO, files []*multipart.FileHeader) (uint, error)
-	GetPostsByUserID(ctx context.Context, userID uint, offset uint, clientId uint) ([]Entities.GetPostDTO, []Entities.GetSurveyDTO, error)
+	GetPostsByUserId(ctx context.Context, userId uint, offset uint, clientId uint) ([]Entities.GetPostDTO, []Entities.GetSurveyDTO, error)
 	LikePost(ctx context.Context, userId, postId uint) error
 	UnlikePost(ctx context.Context, userId, postId uint) error
 	DislikePost(ctx context.Context, userId, postId uint) error
@@ -51,14 +51,14 @@ type Post interface {
 
 	/*region comment*/
 
-	GetCommentsByPostId(ctx context.Context, postId uint, offset uint) ([]Entities.Comment, error)
+	GetCommentsByPostId(ctx context.Context, postId uint, offset uint, clientId uint) ([]Entities.Comment, error)
 	CreateComment(ctx context.Context, userId uint, postId uint, comment Entities.CommentDTO) (uint, error)
-	LikeComment(ctx context.Context, userID uint, commentID uint) error
-	UnlikeComment(ctx context.Context, userID uint, commentID uint) error
-	DislikeComment(ctx context.Context, userID uint, commentID uint) error
-	UndislikeComment(ctx context.Context, userID uint, commentID uint) error
-	UpdateComment(ctx context.Context, userID uint, commentID uint, updateDTO Entities.CommentUpdateDTO) error
-	DeleteComment(ctx context.Context, userID uint, commentID uint) error
+	LikeComment(ctx context.Context, userId uint, commentId uint) error
+	UnlikeComment(ctx context.Context, userId uint, commentId uint) error
+	DislikeComment(ctx context.Context, userId uint, commentId uint) error
+	UndislikeComment(ctx context.Context, userId uint, commentId uint) error
+	UpdateComment(ctx context.Context, userId uint, commentId uint, updateDTO Entities.CommentUpdateDTO) error
+	DeleteComment(ctx context.Context, userId uint, commentId uint) error
 
 	/*endregion*/
 

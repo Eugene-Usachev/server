@@ -22,7 +22,7 @@ import (
 //		return
 //	}
 //
-//	dto.ID = id
+//	dto.Id = id
 //	var (
 //		jsonResponse []byte
 //	)

@@ -1,29 +1,25 @@
 package Entities
 
-import (
-	"database/sql"
-)
-
-// ID is a primary key
+// Id is a primary key
 type Comment struct {
 	//Primary key
-	ID int `json:"id"`
+	Id uint `json:"id"`
 	//Index
-	ParentPostID    int           `json:"parent_post_id"`
-	Data            string        `json:"data"`
-	Date            int64         `json:"date"`
-	ParentUserId    int           `json:"parent_user_id"`
-	Likes           int           `json:"likes"`
-	LikedBy         []int32       `json:"liked_by"`
-	Dislikes        int           `json:"dislikes"`
-	DislikedBy      []int32       `json:"disliked_by"`
-	Files           []string      `json:"files"`
-	ParentCommentId sql.NullInt32 `json:"parent_comment_id"`
+	ParentPostId uint   `json:"parent_post_id"`
+	Data         string `json:"data"`
+	Date         int64  `json:"date"`
+	ParentUserId uint   `json:"parent_user_id"`
+	Likes        uint   `json:"likes"`
+	Dislikes     uint   `json:"dislikes"`
+	// -1 - disliked, 0 - none, 1 - liked
+	LikesStatus     int8     `json:"likes_status"`
+	Files           []string `json:"files"`
+	ParentCommentId int32    `json:"parent_comment_id"`
 }
 
 type CommentDTO struct {
 	ParentCommentId uint     `json:"parent_comment_id"`
-	ParentPostID    uint     `json:"parent_post_id"`
+	ParentPostId    uint     `json:"parent_post_id"`
 	Data            string   `json:"data"  binding:"required"`
 	Files           []string `json:"files" binding:"required"`
 }

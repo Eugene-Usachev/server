@@ -1,12 +1,12 @@
 package Entities
 
 /*
-ParentPostID is a primary key
+ParentPostId is a primary key
 SL is a "survey line", V - "voices"
 */
 type Survey struct {
 	//Primary key
-	ParentPostID  int      `json:"parent_post_id"`
+	ParentPostId  int      `json:"parent_post_id"`
 	Data          []string `json:"data"`
 	SL0V          int      `json:"sl0v"`
 	SL0VBY        []int32  `json:"sl0vby"`
@@ -35,7 +35,7 @@ type Survey struct {
 
 type GetSurveyDTO struct {
 	//Primary key
-	ParentPostID uint     `json:"parent_post_id"`
+	ParentPostId uint     `json:"parent_post_id"`
 	Data         []string `json:"data"`
 	SL0V         uint     `json:"sl0v"`
 	SL1V         uint     `json:"sl1v"`

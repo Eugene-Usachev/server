@@ -108,8 +108,8 @@ func (handler *Handler) InitRoutes(app *fiber.App, websocketClient *websocket.We
 		userWithoutAuth := api.Group("/user")
 		{
 			userWithoutAuth.Get("/:id", handler.getUser)
-			userWithoutAuth.Get("/friends_and_subs/:userId", handler.getFriendsAndSubs)
-			userWithoutAuth.Get("/many", handler.getUsers)
+			userWithoutAuth.Get("/friends_and_subs/:clientId", handler.getFriendsAndSubs)
+			userWithoutAuth.Get("/many/", handler.getUsers)
 			userWithoutAuth.Get("/friends_users", handler.getUsersForFriendPage)
 		}
 		user := api.Group("/user", handler.CheckAuth)

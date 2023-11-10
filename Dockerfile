@@ -5,6 +5,8 @@ FROM golang:1.20-alpine  as builder
 WORKDIR /app
 
 COPY go.mod go.sum ./
+COPY ./static ./static
+
 RUN go mod download && go get -u ./...
 
 COPY ./cmd ./cmd

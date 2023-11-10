@@ -84,7 +84,7 @@ func (repository *UserPostgres) GetUsersForFriendsPage(ctx context.Context, idOf
 
 func (repository *UserPostgres) GetUsers(ctx context.Context, idOfUsers string) ([]Entities.MiniUser, error) {
 	var miniUsers []Entities.MiniUser = []Entities.MiniUser{}
-	str := fmt.Sprintf(`SELECT id, name, surname, avatar FROM users WHERE id in %s`, idOfUsers)
+	str := fmt.Sprintf(`SELECT id, name, surname, avatar FROM users WHERE id IN %s`, idOfUsers)
 	rows, err := repository.dataBases.Postgres.pool.Query(ctx, str)
 	for rows.Next() {
 		var miniUser Entities.MiniUser

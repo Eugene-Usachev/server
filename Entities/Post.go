@@ -1,9 +1,9 @@
 package Entities
 
-// ID is a primary key
+// Id is a primary key
 type Post struct {
 	//Primary key
-	ID uint `json:"id"`
+	Id uint `json:"id"`
 	//Index
 	ParentUserID uint     `json:"parent_user_id"`
 	Likes        uint     `json:"likes"`
@@ -19,7 +19,7 @@ type Post struct {
 }
 
 type GetPostDTO struct {
-	ID       uint `json:"id"`
+	Id       uint `json:"id"`
 	Likes    uint `json:"likes"`
 	Dislikes uint `json:"dislikes"`
 	// -1 - disliked, 0 - none, 1 - liked

@@ -20,6 +20,14 @@ DROP INDEX IF EXISTS surveys_voices_user_idx;
 DROP TABLE IF EXISTS comments;
 DROP INDEX IF EXISTS parent_post_idx;
 
+DROP TABLE IF EXISTS comments_likes;
+DROP INDEX IF EXISTS comments_likes_user_idx;
+DROP INDEX IF EXISTS comments_likes_parent_comment_idx;
+
+DROP TABLE IF EXISTS comments_dislikes;
+DROP INDEX IF EXISTS comments_dislikes_user_idx;
+DROP INDEX IF EXISTS comments_dislikes_parent_comment_idx;
+
 DROP TABLE IF EXISTS chats;
 
 DROP TABLE IF EXISTS messages;

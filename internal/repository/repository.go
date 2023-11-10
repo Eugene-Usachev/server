@@ -1,4 +1,4 @@
-// TODO we not a SOLID! We use raw Postgres in repository (not an interface)!
+// TODO we not a SOLId! We use raw Postgres in repository (not an interface)!
 package repository
 
 import (
@@ -35,7 +35,7 @@ type User interface {
 type Post interface {
 	/*region post*/
 	CreatePost(ctx context.Context, id uint, postDTO Entities.CreatePostDTO, surveyDTO Entities.CreateSurveyDTO, date int64) (uint, error)
-	GetPostsByUserID(ctx context.Context, userID uint, offset uint, clientId uint) ([]Entities.GetPostDTO, []Entities.GetSurveyDTO, error)
+	GetPostsByUserId(ctx context.Context, authorId uint, offset uint, clientId uint) ([]Entities.GetPostDTO, []Entities.GetSurveyDTO, error)
 	LikePost(ctx context.Context, userId, postId uint) error
 	UnlikePost(ctx context.Context, userId, postId uint) error
 	DislikePost(ctx context.Context, userId, postId uint) error
@@ -44,14 +44,14 @@ type Post interface {
 	/*endregion*/
 
 	/*region comments*/
-	GetCommentsByPostId(ctx context.Context, postId uint, offset uint) ([]Entities.Comment, error)
+	GetCommentsByPostId(ctx context.Context, postId uint, offset uint, clientId uint) ([]Entities.Comment, error)
 	CreateComment(ctx context.Context, userId uint, comment Entities.CommentDTO, date int64) (uint, error)
-	LikeComment(ctx context.Context, userID uint, commentID uint) error
-	UnlikeComment(ctx context.Context, userID uint, commentID uint) error
-	DislikeComment(ctx context.Context, userID uint, commentID uint) error
-	UndislikeComment(ctx context.Context, userID uint, commentID uint) error
-	UpdateComment(ctx context.Context, userID uint, commentID uint, updateDTO Entities.CommentUpdateDTO) error
-	DeleteComment(ctx context.Context, userID uint, commentID uint) error
+	LikeComment(ctx context.Context, userId uint, commentId uint) error
+	UnlikeComment(ctx context.Context, userId uint, commentId uint) error
+	DislikeComment(ctx context.Context, userId uint, commentId uint) error
+	UndislikeComment(ctx context.Context, userId uint, commentId uint) error
+	UpdateComment(ctx context.Context, userId uint, commentId uint, updateDTO Entities.CommentUpdateDTO) error
+	DeleteComment(ctx context.Context, userId uint, commentId uint) error
 	/*endregion*/
 
 	/*region survey*/

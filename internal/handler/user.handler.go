@@ -4,6 +4,7 @@ import (
 	"GoServer/Entities"
 	"GoServer/pkg/fasthttp_utils"
 	"github.com/gofiber/fiber/v2"
+	"log"
 	"strconv"
 )
 
@@ -42,7 +43,7 @@ func (handler *Handler) getUserSubsIds(c *fiber.Ctx) error {
 }
 
 func (handler *Handler) getFriendsAndSubs(c *fiber.Ctx) error {
-	client := c.Query("userId")
+	client := c.Query("clientId")
 	clientUint, err := strconv.ParseUint(client, 10, 64)
 	if err != nil || clientUint < 1 {
 		clientUint = 0
@@ -80,7 +81,9 @@ func (handler *Handler) getUsersForFriendPage(c *fiber.Ctx) error {
 }
 
 func (handler *Handler) getUsers(c *fiber.Ctx) error {
-	idOfUsers := c.Query("idOfUsers")
+	log.Println("asdf2")
+	idOfUsers := c.Query("idsOfUsers")
+	log.Println("asdf1")
 
 	users, err := handler.services.User.GetUsers(c.Context(), idOfUsers)
 	if err != nil {
@@ -88,7 +91,7 @@ func (handler *Handler) getUsers(c *fiber.Ctx) error {
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"users": users})
+	return c.Status(fiber.StatusOK).JSON(users)
 }
 
 func (handler *Handler) updateUser(c *fiber.Ctx) error {

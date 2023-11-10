@@ -126,10 +126,10 @@ type UserToCheck struct {
 }
 
 type MiniUser struct {
-	Avatar  string
-	Name    string
-	Surname string
-	ID      uint
+	Avatar  string `json:"avatar"`
+	Name    string `json:"name"`
+	Surname string `json:"surname"`
+	ID      uint   `json:"id"`
 }
 
 type FriendUser struct {

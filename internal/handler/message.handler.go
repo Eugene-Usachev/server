@@ -22,7 +22,7 @@ import (
 //		return
 //	}
 //
-//	message.ID = id
+//	message.Id = id
 //	message.Date = date
 //	var (
 //		jsonResponse []byte
