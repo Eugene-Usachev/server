@@ -95,7 +95,7 @@ type FriendOrSubsDTO struct {
 	Subscribers []int64 `json:"subscribers"`
 }
 
-type GetFriendsAndSubsDTOForOneUser struct {
+type GetFriendsAndSubsDTOForUser struct {
 	Name        string  `json:"name"`
 	Surname     string  `json:"surname"`
 	Avatar      string  `json:"avatar"`
@@ -103,9 +103,14 @@ type GetFriendsAndSubsDTOForOneUser struct {
 	Subscribers []int64 `json:"subscribers"`
 }
 
+type GetFriendsAndSubsDTOForClient struct {
+	Friends     []int64 `json:"friends"`
+	Subscribers []int64 `json:"subscribers"`
+}
+
 type GetFriendsAndSubsDTO struct {
-	Client GetFriendsAndSubsDTOForOneUser `json:"client"`
-	User   GetFriendsAndSubsDTOForOneUser `json:"user"`
+	Client GetFriendsAndSubsDTOForClient `json:"client"`
+	User   GetFriendsAndSubsDTOForUser   `json:"user"`
 }
 
 type SignInDTO struct {
@@ -134,5 +139,5 @@ type MiniUser struct {
 
 type FriendUser struct {
 	MiniUser
-	Subscribers []int64
+	IsClientSub bool `json:"is_client_sub"`
 }

@@ -56,21 +56,41 @@ func (repository *UserPostgres) GetFriendsAndSubs(ctx context.Context, clientId,
 	if clientId == 0 {
 		return DTO, nil
 	}
-	row = repository.dataBases.Postgres.pool.QueryRow(ctx, `SELECT name, surname, avatar, friends, subscribers FROM users WHERE id = $1`, clientId)
-	if err := row.Scan(&DTO.Client.Name, &DTO.Client.Surname, &DTO.Client.Avatar, &DTO.Client.Friends, &DTO.Client.Subscribers); err != nil {
+	row = repository.dataBases.Postgres.pool.QueryRow(ctx, `SELECT friends, subscribers FROM users WHERE id = $1`, clientId)
+	if err := row.Scan(&DTO.Client.Friends, &DTO.Client.Subscribers); err != nil {
 		return Entities.GetFriendsAndSubsDTO{}, err
 	}
 
 	return DTO, nil
 }
 
-func (repository *UserPostgres) GetUsersForFriendsPage(ctx context.Context, idOfUsers string) ([]Entities.FriendUser, error) {
+// GetUsersForFriendsPage TODO new table instead of subscribers list (too slow)
+func (repository *UserPostgres) GetUsersForFriendsPage(ctx context.Context, idOfUsers string, clientId uint) ([]Entities.FriendUser, error) {
 	var miniUsers = []Entities.FriendUser{}
-	str := fmt.Sprintf(`SELECT id, name, surname, avatar, subscribers FROM users WHERE id in %s`, idOfUsers)
+	if clientId == 0 {
+		str := fmt.Sprintf(`SELECT id, name, surname, avatar FROM users WHERE id IN (%s)`, idOfUsers)
+		rows, err := repository.dataBases.Postgres.pool.Query(ctx, str)
+		for rows.Next() {
+			var miniUser Entities.FriendUser
+			if err = rows.Scan(&miniUser.ID, &miniUser.Name, &miniUser.Surname, &miniUser.Avatar); err == nil {
+				miniUser.IsClientSub = false
+				miniUsers = append(miniUsers, miniUser)
+			} else {
+				continue
+			}
+		}
+		if err != nil {
+			return nil, err
+		}
+		return miniUsers, nil
+	}
+	str := fmt.Sprintf(`SELECT id, name, surname, avatar, 
+			%d = ANY(subscribers) AS isClientSub
+		FROM users WHERE id IN (%s)`, clientId, idOfUsers)
 	rows, err := repository.dataBases.Postgres.pool.Query(ctx, str)
 	for rows.Next() {
 		var miniUser Entities.FriendUser
-		if err = rows.Scan(&miniUser.ID, &miniUser.Name, &miniUser.Surname, &miniUser.Avatar, &miniUser.Subscribers); err == nil {
+		if err = rows.Scan(&miniUser.ID, &miniUser.Name, &miniUser.Surname, &miniUser.Avatar, &miniUser.IsClientSub); err == nil {
 			miniUsers = append(miniUsers, miniUser)
 		} else {
 			continue

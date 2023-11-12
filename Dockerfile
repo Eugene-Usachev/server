@@ -5,7 +5,6 @@ FROM golang:1.20-alpine  as builder
 WORKDIR /app
 
 COPY go.mod go.sum ./
-COPY ./static ./static
 
 RUN go mod download && go get -u ./...
 
@@ -21,6 +20,8 @@ COPY ./pkg ./pkg
 #RUN mkdir "redis_data"
 #RUN mkdir "static"
 
+COPY ./static ./static
+
 RUN touch ./cmd/app/main.go
 RUN GOOS=linux GOARCH=amd64 go build -o ./.bin/app ./cmd/app/main.go
 
@@ -31,7 +32,7 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
 COPY --from=builder /app/.bin/app .
-COPY static/ /root/static/
+#RUN mkdir "static"
 
 EXPOSE 4040
 EXPOSE 9091

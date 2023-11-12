@@ -3,8 +3,9 @@ package handler
 import (
 	"GoServer/Entities"
 	"GoServer/pkg/fasthttp_utils"
+	"errors"
 	"github.com/gofiber/fiber/v2"
-	"log"
+	"github.com/jackc/pgx/v5"
 	"strconv"
 )
 
@@ -55,35 +56,41 @@ func (handler *Handler) getFriendsAndSubs(c *fiber.Ctx) error {
 
 	friendsAndSubs, err := handler.services.User.GetFriendsAndSubs(c.Context(), uint(clientUint), uint(userId))
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return NewErrorResponse(c, fiber.StatusNotFound, "user is not exist")
 		}
 		handler.Logger.Error("get friends and subs error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"user":   friendsAndSubs.User,
 		"client": friendsAndSubs.Client,
 	})
 }
 
 func (handler *Handler) getUsersForFriendPage(c *fiber.Ctx) error {
-	idOfUsers := c.Query("idOfUsers")
+	idOfUsers := c.Query("idsOfUsers")
+	if idOfUsers == "" {
+		return NewErrorResponse(c, fiber.StatusBadRequest, "nothing to get")
+	}
 
-	users, err := handler.services.User.GetUsersForFriendsPage(c.Context(), idOfUsers)
+	clientId, err := strconv.ParseUint(c.Params("clientId"), 10, 64)
+	if err != nil || clientId < 1 || idOfUsers == "" {
+		clientId = 0
+	}
+
+	users, err := handler.services.User.GetUsersForFriendsPage(c.Context(), idOfUsers, uint(clientId))
 	if err != nil {
 		handler.Logger.Error("get users for friend page error: " + err.Error())
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{"users": users})
+	return c.Status(fiber.StatusOK).JSON(users)
 }
 
 func (handler *Handler) getUsers(c *fiber.Ctx) error {
-	log.Println("asdf2")
 	idOfUsers := c.Query("idsOfUsers")
-	log.Println("asdf1")
 
 	users, err := handler.services.User.GetUsers(c.Context(), idOfUsers)
 	if err != nil {

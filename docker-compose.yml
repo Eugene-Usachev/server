@@ -77,3 +77,9 @@ services:
       - type: bind
         source: ./logs
         target: /logs
+      - type: bind
+        source: ./metrics
+        target: /metrics
+      - type: bind
+        source: ./static
+        target: /static

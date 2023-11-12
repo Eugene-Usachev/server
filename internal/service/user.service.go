@@ -76,8 +76,8 @@ func (service *UserService) GetUsers(ctx context.Context, idOfUsers string) ([]E
 	return service.repository.GetUsers(ctx, idOfUsers)
 }
 
-func (service *UserService) GetUsersForFriendsPage(ctx context.Context, idOfUsers string) ([]Entities.FriendUser, error) {
-	return service.repository.GetUsersForFriendsPage(ctx, idOfUsers)
+func (service *UserService) GetUsersForFriendsPage(ctx context.Context, idOfUsers string, clientId uint) ([]Entities.FriendUser, error) {
+	return service.repository.GetUsersForFriendsPage(ctx, idOfUsers, clientId)
 }
 
 func (service *UserService) GetOnlineUsers(ctx context.Context, slice []string) ([]int, error) {

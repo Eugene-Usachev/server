@@ -29,7 +29,7 @@ type User interface {
 	DeleteFromSubs(ctx context.Context, id, body uint) error
 	DeleteUser(ctx context.Context, id uint) error
 	GetUsers(ctx context.Context, idOfUsers string) ([]Entities.MiniUser, error)
-	GetUsersForFriendsPage(ctx context.Context, idOfUsers string) ([]Entities.FriendUser, error)
+	GetUsersForFriendsPage(ctx context.Context, idOfUsers string, clientId uint) ([]Entities.FriendUser, error)
 
 	GetOnlineUsers(ctx context.Context, slice []string) ([]int, error)
 	SubscribeOnUsers(ctx context.Context, slice []string, clientId string) error

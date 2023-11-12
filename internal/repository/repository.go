@@ -28,7 +28,7 @@ type User interface {
 	AddToSubs(ctx context.Context, id, body uint) error
 	DeleteFromSubs(ctx context.Context, id, body uint) error
 	DeleteUser(ctx context.Context, id uint) error
-	GetUsersForFriendsPage(ctx context.Context, idOfUsers string) ([]Entities.FriendUser, error)
+	GetUsersForFriendsPage(ctx context.Context, idOfUsers string, clientId uint) ([]Entities.FriendUser, error)
 	GetUsers(ctx context.Context, idOfUsers string) ([]Entities.MiniUser, error)
 }
 
