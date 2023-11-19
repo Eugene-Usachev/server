@@ -1,14 +1,11 @@
 package websocket
 
 import (
-	"GoServer/pkg/fasthttp_utils"
 	"context"
 	fb "github.com/Eugene-Usachev/fastbytes"
 	loggerLib "github.com/Eugene-Usachev/logger"
-	"github.com/fasthttp/websocket"
-	"github.com/redis/rueidis"
-	"github.com/valyala/fasthttp"
-	"strconv"
+	"github.com/gofiber/contrib/websocket"
+	"sync"
 	"time"
 )
 
@@ -30,9 +27,19 @@ const (
 	onlineUsers = "ou"
 )
 
-var upgrader = websocket.FastHTTPUpgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
+var Config *websocket.Config = nil
+
+func InitConfig(logger *loggerLib.FastLogger) {
+	Config = &websocket.Config{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		WriteBufferPool: &sync.Pool{},
+		RecoverHandler: func(conn *websocket.Conn) {
+			if reason := recover(); reason != nil {
+				logger.Error("recover websocket panic, err: ", reason)
+			}
+		},
+	}
 }
 
 // TODO use pool
@@ -41,8 +48,6 @@ type Client struct {
 
 	// The websocket connection.
 	conn *websocket.Conn
-
-	logger *loggerLib.FastLogger
 
 	// Buffered channel of outbound messages.
 	send chan []byte
@@ -60,21 +65,22 @@ type Client struct {
 	subscriptions []string
 }
 
-// readPump pumps messages from the websocket connection to the hub.
-func (client *Client) readPump() {
+// startReadPump pumps messages from the websocket connection to the hub.
+func (client *Client) startReadPump() {
 	defer func() {
-		client.hub.unregister <- client
+		client.Close()
 	}()
+	var err error
 	client.conn.SetReadLimit(maxMessageSize)
-	err := client.conn.SetReadDeadline(time.Now().Add(pongWait))
+	err = client.conn.SetReadDeadline(time.Now().Add(pongWait))
 	if err != nil {
-		client.logger.Error("set read deadline error: " + err.Error())
+		client.hub.logger.Error("set read deadline error: " + err.Error())
 		return
 	}
 	client.conn.SetPongHandler(func(string) error {
 		err = client.conn.SetReadDeadline(time.Now().Add(pongWait))
 		if err != nil {
-			client.logger.Error("set read deadline error: " + err.Error())
+			client.hub.logger.Error("set read deadline error: " + err.Error())
 			return err
 		}
 		return nil
@@ -84,7 +90,7 @@ func (client *Client) readPump() {
 		_, request, err = client.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				client.logger.Error("websocket.IsUnexpectedCloseError: " + err.Error())
+				client.hub.logger.Error("websocket.IsUnexpectedCloseError: " + err.Error())
 			}
 			break
 		}
@@ -93,26 +99,26 @@ func (client *Client) readPump() {
 	}
 }
 
-// writePump pumps messages from the hub to the websocket connection.
-func (client *Client) writePump() {
+// startWritePump pumps messages from the hub to the websocket connection.
+func (client *Client) startWritePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
+		client.Close()
 		ticker.Stop()
-		client.hub.unregister <- client
 	}()
 	for {
 		select {
 		case message, ok := <-client.send:
 			err := client.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err != nil {
-				client.logger.Error("set write deadline error: " + err.Error())
+				client.hub.logger.Error("set write deadline error: " + err.Error())
 				return
 			}
 			if !ok {
 				// The hub closed the channel.
 				err = client.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				if err != nil {
-					client.logger.Error("writeMessage error: " + err.Error())
+					client.hub.logger.Error("writeMessage error: " + err.Error())
 					return
 				}
 				return
@@ -124,7 +130,7 @@ func (client *Client) writePump() {
 			}
 			_, err = w.Write(message)
 			if err != nil {
-				client.logger.Error("write error: " + err.Error())
+				client.hub.logger.Error("write error: " + err.Error())
 				return
 			}
 
@@ -133,7 +139,7 @@ func (client *Client) writePump() {
 			for i := 0; i < n; i++ {
 				_, err = w.Write(<-client.send)
 				if err != nil {
-					client.logger.Error("write error: " + err.Error())
+					client.hub.logger.Error("write error: " + err.Error())
 					return
 				}
 			}
@@ -144,7 +150,7 @@ func (client *Client) writePump() {
 		case <-ticker.C:
 			err := client.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err != nil {
-				client.logger.Error("set write deadline error: " + err.Error())
+				client.hub.logger.Error("set write deadline error: " + err.Error())
 				return
 			}
 			if err = client.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
@@ -154,48 +160,17 @@ func (client *Client) writePump() {
 	}
 }
 
-var welcomeMessage = fb.S2B("Welcome")
-
-// ServeWs handles websocket requests from the peer.
-func (websocketClient *WebsocketClient) ServeWs(ctx *fasthttp.RequestCtx) error {
-	err := upgrader.Upgrade(ctx, func(conn *websocket.Conn) {
-		client := &Client{hub: websocketClient.hub, conn: conn, send: make(chan []byte, 256)}
-		client.userId = client.verify(ctx)
-		client.hub.register <- client
-		clientCtx := context.Background()
-		client.ctx, client.cancel = context.WithCancel(clientCtx)
-		websocketClient.redis.Do(client.ctx, websocketClient.redis.B().Sadd().Key(onlineUsers).Member(strconv.Itoa(client.userId)).Build())
-
-		// Allow collection of memory referenced by the caller by doing all work in new goroutines.
-		go client.writePump()
-		go client.readPump()
-		go websocketClient.subscribeClient(client)
-
-		//client.send <- welcomeMessage
-	})
-	if err != nil {
-		websocketClient.logger.Error("upgrade error: " + err.Error())
-		return err
-	}
-
-	return nil
-}
-
-func (websocketClient *WebsocketClient) subscribeClient(client *Client) {
-	dedicatedClient, err := websocketClient.redis.Dedicate()
-	if err != nil {
-		websocketClient.hub.unregister <- client
-		return
-	}
-	defer dedicatedClient.Close()
-	dedicatedClient.Receive(client.ctx, websocketClient.redis.B().Ssubscribe().Channel(strconv.Itoa(client.userId)).Build(), func(msg rueidis.PubSubMessage) {
-		client.send <- fb.S2B(msg.Message)
-	})
+func (client *Client) Close() {
+	client.cancel()
+	client.hub.unregister <- client
+	client.conn.Close()
+	client.subscriptions = nil
+	client.hub.clientPool.Put(client)
 }
 
 // We don't need to refreshTokens tokens, because user in first send request and get token and in second send request to websocket.
-func (client *Client) verify(ctx *fasthttp.RequestCtx) int {
-	accessToken := fb.B2S(fasthttp_utils.GetAuthorizationHeader(ctx))
+func (client *Client) verify(conn *websocket.Conn) int {
+	accessToken := conn.Headers("Authorization")
 	if accessToken == "" {
 		return -1
 	} else {

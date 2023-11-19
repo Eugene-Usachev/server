@@ -43,8 +43,8 @@ func (service *ChatService) DeleteChat(ctx context.Context, userId uint, chatId 
 	return service.repository.DeleteChat(ctx, userId, chatId)
 }
 
-func (service *ChatService) GetChats(ctx context.Context, userId uint) (string, string, string, []uint, []uint, string, []Entities.Chat, error) {
-	return service.repository.GetChats(ctx, userId)
+func (service *ChatService) GetChatsListAndInfoForUser(ctx context.Context, userId uint) (friends []uint, subscribers []uint, chatLists string, err error) {
+	return service.repository.GetChatsListAndInfoForUser(ctx, userId)
 }
 
 func (service *ChatService) UpdateChatLists(ctx context.Context, id uint, newChatLists string) error {

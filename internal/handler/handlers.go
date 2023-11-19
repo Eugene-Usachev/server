@@ -7,6 +7,7 @@ import (
 	"github.com/Eugene-Usachev/fastbytes"
 	"github.com/Eugene-Usachev/fst"
 	loggerLib "github.com/Eugene-Usachev/logger"
+	fiberWebsocket "github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
@@ -91,7 +92,7 @@ func (handler *Handler) InitMiddlewares(app *fiber.App) {
 	//app.Use(recover.New())
 }
 
-func (handler *Handler) InitRoutes(app *fiber.App, websocketClient *websocket.WebsocketClient) {
+func (handler *Handler) InitRoutes(app *fiber.App, websocketHub *websocket.Hub) {
 
 	app.Static("/UserFiles", "../static/UserFiles")
 	app.Static("/pages", "../static/pages/")
@@ -172,8 +173,8 @@ func (handler *Handler) InitRoutes(app *fiber.App, websocketClient *websocket.We
 
 		chat := api.Group("/chat", handler.CheckAuth)
 		{
-			chat.Get("/", handler.getChats)
-			chat.Patch("/chat-list/", handler.UpdateChatLists)
+			chat.Get("/list/", handler.getChatsList)
+			chat.Patch("/chatList/", handler.UpdateChatLists)
 		}
 		message := api.Group("/message", handler.CheckAuth)
 		{
@@ -182,9 +183,17 @@ func (handler *Handler) InitRoutes(app *fiber.App, websocketClient *websocket.We
 		}
 	}
 
-	app.Get("/ws", func(ctx *fiber.Ctx) error {
-		return websocketClient.ServeWs(ctx.Context())
+	app.Use("/ws", func(c *fiber.Ctx) error {
+		if fiberWebsocket.IsWebSocketUpgrade(c) {
+			c.Locals("allowed", true)
+			return c.Next()
+		}
+		return fiber.ErrUpgradeRequired
 	})
+
+	app.Get("/ws", fiberWebsocket.New(func(conn *fiberWebsocket.Conn) {
+		websocketHub.ServeWs(conn)
+	}, *websocket.Config))
 
 	metricsHandler := fasthttpadaptor.NewFastHTTPHandler(promhttp.Handler())
 

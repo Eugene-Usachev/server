@@ -67,7 +67,7 @@ func main() {
 		AccessConverter:  accessConverter,
 		RefreshConverter: refreshConverter,
 	})
-	websocketClient, err := websocket.NewWebsocketClient(serviceImpl, redisClient, accessConverter, websocketLogger)
+	websocketHub := websocket.NewHub(serviceImpl, redisClient, accessConverter, websocketLogger)
 	if err != nil {
 		serverLogger.FormatFatal("error occured while creating websocket client: %s", err.Error())
 	}
@@ -80,7 +80,7 @@ func main() {
 
 	serverImpl := new(server.Server)
 
-	if err = serverImpl.Run(fmt.Sprintf(":%s", os.Getenv("PORT")), handlerImpl, websocketClient); err != nil {
+	if err = serverImpl.Run(fmt.Sprintf(":%s", os.Getenv("PORT")), handlerImpl, websocketHub); err != nil {
 		serverLogger.FormatFatal("error occured while running http server: %s", err.Error())
 	}
 }

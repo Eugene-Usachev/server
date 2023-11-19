@@ -104,27 +104,21 @@ import (
 //	sendDataToMembers(hub, jsonResponse, members)
 //}
 
-// getChats returns a list of chats and chats.
-func (handler *Handler) getChats(ctx *fiber.Ctx) error {
-	userId := ctx.Locals("userId")
-	userIdI := userId.(uint)
-	if userIdI == 0 {
+func (handler *Handler) getChatsList(ctx *fiber.Ctx) error {
+	userId, ok := ctx.Locals("userId").(uint)
+	if !ok || userId == 0 {
 		return NewErrorResponse(ctx, fiber.StatusUnauthorized, "invalid auth token")
 	}
 
-	avatar, name, surname, friends, subscribers, chatLists, chats, err := handler.services.Chat.GetChats(ctx.Context(), userIdI)
+	friends, subscribers, chatLists, err := handler.services.Chat.GetChatsListAndInfoForUser(ctx.Context(), userId)
 	if err != nil {
 		return NewErrorResponse(ctx, fiber.StatusInternalServerError, err.Error())
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
-		"chats":       chats,
-		"chatLists":   chatLists,
-		"avatar":      avatar,
+		"chatsList":   chatLists,
 		"friends":     friends,
 		"subscribers": subscribers,
-		"name":        name,
-		"surname":     surname,
 	})
 }
 

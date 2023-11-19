@@ -60,53 +60,35 @@ func (repository *ChatPostgres) DeleteChat(ctx context.Context, userId, chatId u
 	return members, nil
 }
 
-//TODO time of time we need to check exists chats and remove deleted
-
-func (repository *ChatPostgres) GetChats(ctx context.Context, userId uint) (string, string, string, []uint, []uint, string, []Entities.Chat, error) {
-	var (
-		err         error
-		chatLists   string
-		avatar      string
-		name        string
-		surname     string
-		friends     = []uint{}
-		subscribers = []uint{}
-		allChats    = []uint{}
-	)
+// GetChats TODO time of time we need to check exists chats and remove deleted
+func (repository *ChatPostgres) GetChatsListAndInfoForUser(ctx context.Context, userId uint) (friends []uint, subscribers []uint, chatLists string, err error) {
+	friends = []uint{}
+	subscribers = []uint{}
 	err = repository.dataBases.Postgres.pool.QueryRow(ctx, `
-		SELECT chat_lists, all_chats, avatar, name, surname, subscribers, friends
+		SELECT chat_lists, subscribers, friends
 		FROM users
 		WHERE id = $1
-	`, userId).Scan(&chatLists, &allChats, &avatar, &name, &surname, &subscribers, &friends)
+	`, userId).Scan(&chatLists, &subscribers, &friends)
+
+	return friends, subscribers, chatLists, err
+}
+
+func (repository *ChatPostgres) GetChats(ctx context.Context, userId uint, chatsId string) ([]Entities.Chat, error) {
+	chats := []Entities.Chat{}
+	rows, err := repository.dataBases.Postgres.pool.Query(ctx, `SELECT id, name, avatar, members FROM chats WHERE id = ANY($1) AND $2 = ANY(members)`, chatsId, userId)
 	if err != nil {
-		return avatar, "", "", nil, nil, "", nil, err
+		return []Entities.Chat{}, err
 	}
-
-	if len(allChats) == 0 {
-		return avatar, name, surname, friends, subscribers, chatLists, []Entities.Chat{}, err
-	}
-
-	chats := make([]Entities.Chat, 0, len(allChats))
-
-	rows, err := repository.dataBases.Postgres.pool.Query(ctx, `
-		SELECT id, name, avatar, members
-		FROM chats
-		WHERE id = ANY ($1)
-	`, allChats)
-	if err != nil {
-		return avatar, name, surname, friends, subscribers, chatLists, nil, err
-	}
-
+	defer rows.Close()
 	for rows.Next() {
 		var chat Entities.Chat
 		err = rows.Scan(&chat.ID, &chat.Name, &chat.Avatar, &chat.Members)
 		if err != nil {
-			continue
+			return []Entities.Chat{}, err
 		}
 		chats = append(chats, chat)
 	}
-
-	return avatar, name, surname, friends, subscribers, chatLists, chats, err
+	return chats, nil
 }
 
 func (repository *ChatPostgres) UpdateChatLists(ctx context.Context, id uint, newChatLists string) error {
