@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
     attitude_to_sport     SMALLINT       default -1,
     attitude_to_alcohol   SMALLINT       default -1,
     dreams                varchar(256)   default '',
-    chat_lists            text           default '[{"name":"favourites","chats":[]},{"name":"friends","chats":[]},{"name":"subscribers","chats":[]},{"name":"nobody","chats":[]}]',
-    all_chats             integer []     default ARRAY[]::integer[] []
+    /** [0] - favourites, [1] - other and next is object (name - list) */
+    chat_lists            text           default '{"favourites": [],"other": []}'
 );
 
 CREATE TABLE IF NOT EXISTS posts (

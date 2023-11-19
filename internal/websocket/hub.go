@@ -1,12 +1,16 @@
 package websocket
 
 import (
-	"encoding/json"
-	"fmt"
+	"GoServer/internal/service"
+	"context"
 	fb "github.com/Eugene-Usachev/fastbytes"
 	"github.com/Eugene-Usachev/fst"
+	loggerLib "github.com/Eugene-Usachev/logger"
+	"github.com/goccy/go-json"
+	"github.com/gofiber/contrib/websocket"
 	"github.com/redis/rueidis"
 	"strconv"
+	"sync"
 )
 
 var (
@@ -17,30 +21,56 @@ var (
 type Hub struct {
 	// Unauthorized clients (!) in this node.
 	unauthClients map[*Client]bool
-
 	// Authorized clients (!) in this node.
 	authClients map[int]*Client
-
 	// Inbound messages from the clients.
 	broadcast chan ParsedRequest
-
 	// register requests from the clients.
 	register chan *Client
-
 	// unregister requests from clients.
 	unregister chan *Client
 
+	// TODO redis is not SOLID
+	redis rueidis.Client
+
+	handler         *Handler
+	logger          *loggerLib.FastLogger
+	clientPool      sync.Pool
 	accessConverter *fst.Converter
 }
 
-func NewHub(accessConverter *fst.Converter) *Hub {
-	return &Hub{
+func NewHub(service *service.Service, redisClient rueidis.Client, accessConverter *fst.Converter, logger *loggerLib.FastLogger) *Hub {
+	InitConfig(logger)
+	self := &Hub{
 		broadcast:       make(chan ParsedRequest),
 		register:        make(chan *Client),
 		unregister:      make(chan *Client),
 		unauthClients:   make(map[*Client]bool),
 		authClients:     make(map[int]*Client),
 		accessConverter: accessConverter,
+		logger:          logger,
+		handler:         newHandler(service),
+		redis:           redisClient,
+	}
+
+	self.clientPool = sync.Pool{
+		New: func() any {
+			return self.newEmptyClient()
+		},
+	}
+
+	return self
+}
+
+func (hub *Hub) newEmptyClient() *Client {
+	return &Client{
+		hub:           hub,
+		conn:          nil,
+		send:          make(chan []byte, 5),
+		userId:        -1,
+		ctx:           nil,
+		cancel:        nil,
+		subscriptions: nil,
 	}
 }
 
@@ -51,55 +81,90 @@ func createResponse(messageType string, data string) ([]byte, error) {
 	})
 }
 
-func (websocketClient *WebsocketClient) Run() {
-	websocketClient.logger.Info("hub started")
+func (hub *Hub) Run() {
+	hub.logger.Info("hub started")
 	defer func() {
 		if reason := recover(); reason != nil {
-			websocketClient.logger.Error("Handled panic, reason: ", reason)
+			hub.logger.Error("Handled panic, reason: ", reason)
 		}
 	}()
 
 	for {
 		select {
-		case client := <-websocketClient.hub.register:
+		case client := <-hub.register:
 			clientId := client.userId
 			if clientId != -1 {
-				websocketClient.hub.authClients[clientId] = client
-				_, _ = websocketClient.redis.Do(client.ctx, websocketClient.redis.B().Smembers().Key(strconv.Itoa(clientId)).Build()).ToAny()
+				hub.authClients[clientId] = client
+				_, _ = hub.redis.Do(client.ctx, hub.redis.B().Smembers().Key(strconv.Itoa(clientId)).Build()).ToAny()
 			} else {
-				websocketClient.hub.unauthClients[client] = true
+				hub.unauthClients[client] = true
 			}
 
-		case client := <-websocketClient.hub.unregister:
-			client.cancel()
-			client.conn.Close()
-			close(client.send)
+		case client := <-hub.unregister:
 			if client.userId != -1 {
-				strId := strconv.Itoa(client.userId)
-				var needToDo []rueidis.Completed
-				needToDo = append(needToDo, websocketClient.redis.B().Smembers().Key(strId).Build())
-				needToDo = append(needToDo, websocketClient.redis.B().Srem().Key(onlineUsers).Member(strId).Build())
-				for _, userId := range client.subscriptions {
-					needToDo = append(needToDo, websocketClient.redis.B().Srem().Key(userId).Member(strId).Build())
+				if len(client.subscriptions) > 0 {
+					strId := strconv.Itoa(client.userId)
+					var needToDo []rueidis.Completed
+					needToDo = append(needToDo, hub.redis.B().Smembers().Key(strId).Build())
+					needToDo = append(needToDo, hub.redis.B().Srem().Key(onlineUsers).Member(strId).Build())
+					for _, userId := range client.subscriptions {
+						needToDo = append(needToDo, hub.redis.B().Srem().Key(userId).Member(strId).Build())
+					}
+					// We call Error only for wait the operation
+					_ = hub.redis.DoMulti(context.Background(), needToDo...)[0].Error()
 				}
-				resp := websocketClient.redis.DoMulti(websocketClient.ctx, needToDo...)
-				fmt.Sprintf("Type: %T", resp[0])
-				delete(websocketClient.hub.authClients, client.userId)
+				delete(hub.authClients, client.userId)
 			} else {
-				delete(websocketClient.hub.unauthClients, client)
+				delete(hub.unauthClients, client)
 			}
 
-		case parsedRequest := <-websocketClient.hub.broadcast:
+		case parsedRequest := <-hub.broadcast:
 			if parsedRequest.Client == nil {
 				continue
 			}
-			websocketClient.handler.handle(parsedRequest)
+			hub.handler.handle(parsedRequest)
 		}
 	}
 }
 
-// TODO r
-func (hub Hub) getOnlineUsers(necessaryToGet []interface{}) []byte {
+func (hub *Hub) Close() {
+	hub.redis.Close()
+}
+
+var welcomeMessage = fb.S2B("Welcome")
+
+// ServeWs handles websocket requests from the peer.
+func (hub *Hub) ServeWs(conn *websocket.Conn) {
+	client := hub.clientPool.Get().(*Client)
+	client.conn = conn
+	client.userId = client.verify(conn)
+	client.hub.register <- client
+	clientCtx := context.Background()
+	client.ctx, client.cancel = context.WithCancel(clientCtx)
+	hub.redis.Do(client.ctx, hub.redis.B().Sadd().Key(onlineUsers).Member(strconv.Itoa(client.userId)).Build())
+
+	// Allow collection of memory referenced by the caller by doing all work in new goroutines.
+	go client.startWritePump()
+	go hub.subscribeClient(client)
+	client.send <- welcomeMessage
+	client.startReadPump()
+
+}
+
+func (hub *Hub) subscribeClient(client *Client) {
+	dedicatedClient, err := hub.redis.Dedicate()
+	if err != nil {
+		client.Close()
+		return
+	}
+	defer dedicatedClient.Close()
+	dedicatedClient.Receive(client.ctx, hub.redis.B().Ssubscribe().Channel(strconv.Itoa(client.userId)).Build(), func(msg rueidis.PubSubMessage) {
+		client.send <- fb.S2B(msg.Message)
+	})
+}
+
+// TODO r THIS IS A SERVICE
+func (hub *Hub) getOnlineUsers(necessaryToGet []interface{}) []byte {
 	var onlineUsers = []int{}
 	for _, userId := range necessaryToGet {
 		userIdI := int(userId.(float64))

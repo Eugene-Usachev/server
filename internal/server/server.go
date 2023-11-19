@@ -20,7 +20,7 @@ type ServerInterface interface {
 	ShutDown() error
 }
 
-func (s *Server) Run(port string, handler *handler.Handler, websocketClient *websocket.WebsocketClient) error {
+func (s *Server) Run(port string, handler *handler.Handler, websocketHub *websocket.Hub) error {
 	s.httpServer = fiber.New(fiber.Config{
 		Prefork:           false,
 		StrictRouting:     true,
@@ -43,9 +43,9 @@ func (s *Server) Run(port string, handler *handler.Handler, websocketClient *web
 	})
 	s.handler = handler
 	s.handler.InitMiddlewares(s.httpServer)
-	s.handler.InitRoutes(s.httpServer, websocketClient)
+	s.handler.InitRoutes(s.httpServer, websocketHub)
 	handler.Logger.Info("routers have been initialized")
-	go websocketClient.Run()
+	go websocketHub.Run()
 	err := s.httpServer.Listen(port)
 	if err != nil {
 		return err
