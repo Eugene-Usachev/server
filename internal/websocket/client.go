@@ -52,7 +52,7 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	send chan []byte
 
-	//if UserId is -1 then user is unauthorized
+	//if userId is -1 then user is unauthorized
 	userId int
 
 	//ctx is context.Context. It is used to cancel the context
@@ -170,7 +170,7 @@ func (client *Client) Close() {
 
 // We don't need to refreshTokens tokens, because user in first send request and get token and in second send request to websocket.
 func (client *Client) verify(conn *websocket.Conn) int {
-	accessToken := conn.Headers("Authorization")
+	accessToken := conn.Query("auth")
 	if accessToken == "" {
 		return -1
 	} else {

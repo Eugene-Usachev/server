@@ -173,8 +173,9 @@ func (handler *Handler) InitRoutes(app *fiber.App, websocketHub *websocket.Hub) 
 
 		chat := api.Group("/chat", handler.CheckAuth)
 		{
+			chat.Get("/", handler.getChats)
 			chat.Get("/list/", handler.getChatsList)
-			chat.Patch("/chatList/", handler.UpdateChatLists)
+			chat.Patch("/list/", handler.UpdateChatLists)
 		}
 		message := api.Group("/message", handler.CheckAuth)
 		{

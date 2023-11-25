@@ -82,7 +82,8 @@ type Chat interface {
 	CreateChat(ctx context.Context, userId uint, chatDTO Entities.ChatDTO) (uint, error)
 	UpdateChat(ctx context.Context, userId, chatId uint, chatDTO Entities.ChatUpdateDTO) error
 	DeleteChat(ctx context.Context, userId uint, chatId uint) ([]uint, error)
-	GetChatsListAndInfoForUser(ctx context.Context, userId uint) (friends []uint, subscribers []uint, chatLists string, err error)
+	GetChatsListAndInfoForUser(ctx context.Context, userId uint) (friends []uint, chatLists string, err error)
+	GetChats(ctx context.Context, userId uint, chatsId string) ([]Entities.Chat, error)
 	UpdateChatLists(ctx context.Context, id uint, newChatLists string) error
 }
 

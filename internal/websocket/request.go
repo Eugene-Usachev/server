@@ -1,15 +1,15 @@
 package websocket
 
 var (
-	getOnlineUsersMethod = uint8(0)
+	getOnlineUsers = uint8(0)
 
-	createChatMethod = uint8(1)
-	updateChatMethod = uint8(2)
-	deleteChatMethod = uint8(3)
+	createChat = uint8(1)
+	updateChat = uint8(2)
+	deleteChat = uint8(3)
 
-	sendMessageMethod   = uint8(4)
-	updateMessageMethod = uint8(5)
-	deleteMessageMethod = uint8(6)
+	sendMessage   = uint8(4)
+	updateMessage = uint8(5)
+	deleteMessage = uint8(6)
 )
 
 type ParsedRequest struct {

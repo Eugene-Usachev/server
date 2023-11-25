@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
     attitude_to_alcohol   SMALLINT       default -1,
     dreams                varchar(256)   default '',
     /** [0] - favourites, [1] - other and next is object (name - list) */
-    chat_lists            text           default '{"favourites": [],"other": []}'
+    chat_lists            text           default '{"Favourites": [],"Other": []}'
 );
 
 CREATE TABLE IF NOT EXISTS posts (

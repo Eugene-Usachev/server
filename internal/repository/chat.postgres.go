@@ -61,16 +61,15 @@ func (repository *ChatPostgres) DeleteChat(ctx context.Context, userId, chatId u
 }
 
 // GetChats TODO time of time we need to check exists chats and remove deleted
-func (repository *ChatPostgres) GetChatsListAndInfoForUser(ctx context.Context, userId uint) (friends []uint, subscribers []uint, chatLists string, err error) {
+func (repository *ChatPostgres) GetChatsListAndInfoForUser(ctx context.Context, userId uint) (friends []uint, chatLists string, err error) {
 	friends = []uint{}
-	subscribers = []uint{}
 	err = repository.dataBases.Postgres.pool.QueryRow(ctx, `
-		SELECT chat_lists, subscribers, friends
+		SELECT chat_lists, friends
 		FROM users
 		WHERE id = $1
-	`, userId).Scan(&chatLists, &subscribers, &friends)
+	`, userId).Scan(&chatLists, &friends)
 
-	return friends, subscribers, chatLists, err
+	return friends, chatLists, err
 }
 
 func (repository *ChatPostgres) GetChats(ctx context.Context, userId uint, chatsId string) ([]Entities.Chat, error) {

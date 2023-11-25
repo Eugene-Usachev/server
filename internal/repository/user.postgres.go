@@ -88,6 +88,7 @@ func (repository *UserPostgres) GetUsersForFriendsPage(ctx context.Context, idOf
 			%d = ANY(subscribers) AS isClientSub
 		FROM users WHERE id IN (%s)`, clientId, idOfUsers)
 	rows, err := repository.dataBases.Postgres.pool.Query(ctx, str)
+	defer rows.Close()
 	for rows.Next() {
 		var miniUser Entities.FriendUser
 		if err = rows.Scan(&miniUser.ID, &miniUser.Name, &miniUser.Surname, &miniUser.Avatar, &miniUser.IsClientSub); err == nil {
@@ -103,9 +104,10 @@ func (repository *UserPostgres) GetUsersForFriendsPage(ctx context.Context, idOf
 }
 
 func (repository *UserPostgres) GetUsers(ctx context.Context, idOfUsers string) ([]Entities.MiniUser, error) {
-	var miniUsers []Entities.MiniUser = []Entities.MiniUser{}
+	var miniUsers = []Entities.MiniUser{}
 	str := fmt.Sprintf(`SELECT id, name, surname, avatar FROM users WHERE id IN %s`, idOfUsers)
 	rows, err := repository.dataBases.Postgres.pool.Query(ctx, str)
+	defer rows.Close()
 	for rows.Next() {
 		var miniUser Entities.MiniUser
 		if err = rows.Scan(&miniUser.ID, &miniUser.Name, &miniUser.Surname, &miniUser.Avatar); err == nil {

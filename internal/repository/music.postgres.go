@@ -25,6 +25,7 @@ func (repository *MusicPostgres) GetMusics(ctx context.Context, name string, off
 
 	rows, err := repository.dataBases.Postgres.pool.Query(ctx, `SELECT * FROM musics WHERE author LIKE $1 OR title LIKE $1
                      ORDER BY number_of_eavesdroppers DESC LIMIT 20 OFFSET $2`, name, offset)
+	defer rows.Close()
 	if err != nil {
 		return musics, err
 	}
