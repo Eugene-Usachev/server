@@ -74,9 +74,9 @@ func (hub *Hub) newEmptyClient() *Client {
 	}
 }
 
-func createResponse(messageType string, data string) ([]byte, error) {
-	return json.Marshal(map[string]string{
-		"method": messageType,
+func createResponse(method any, data any) ([]byte, error) {
+	return json.Marshal(map[string]any{
+		"method": method,
 		"data":   data,
 	})
 }
@@ -152,12 +152,11 @@ func (hub *Hub) ServeWs(conn *websocket.Conn) {
 }
 
 func (hub *Hub) subscribeClient(client *Client) {
-	dedicatedClient, err := hub.redis.Dedicate()
-	if err != nil {
-		client.Close()
-		return
-	}
-	defer dedicatedClient.Close()
+	dedicatedClient, cancel := hub.redis.Dedicate()
+	defer func() {
+		cancel()
+		dedicatedClient.Close()
+	}()
 	dedicatedClient.Receive(client.ctx, hub.redis.B().Ssubscribe().Channel(strconv.Itoa(client.userId)).Build(), func(msg rueidis.PubSubMessage) {
 		client.send <- fb.S2B(msg.Message)
 	})
@@ -173,10 +172,7 @@ func (hub *Hub) getOnlineUsers(necessaryToGet []interface{}) []byte {
 		}
 	}
 
-	onlineUsersJSON, _ := json.Marshal(map[string]interface{}{
-		"data":   onlineUsers,
-		"method": "getOnlineUsers",
-	})
+	onlineUsersJSON, _ := createResponse("getOnlineUsers", onlineUsers)
 
 	return onlineUsersJSON
 }

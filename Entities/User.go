@@ -24,10 +24,10 @@ type User struct {
 	Subscribers        []int64 `json:"subscribers"`
 	Avatar             string  `json:"avatar"`
 	Birthday           string  `json:"birthday"`
-	FavouritesBooks    string  `json:"favourites_books"`
-	FavouritesFilms    string  `json:"favourites_films"`
-	FavouritesGames    string  `json:"favourites_games"`
-	FavouritesMeals    string  `json:"favourites_meals"`
+	FavoritesBooks     string  `json:"favorites_books"`
+	FavoritesFilms     string  `json:"favorites_films"`
+	FavoritesGames     string  `json:"favorites_games"`
+	FavoritesMeals     string  `json:"favorites_meals"`
 	Description        string  `json:"description"`
 	FamilyStatus       string  `json:"family_status"`
 	PlaceOfResidence   string  `json:"place_of_residence"`
@@ -52,10 +52,10 @@ type UpdateUserDTO struct {
 	Surname              string `json:"surname"`
 	Avatar               string `json:"avatar"`
 	Birthday             string `json:"birthday"`
-	Favourites_books     string `json:"favourites_books"`
-	Favourites_films     string `json:"favourites_films"`
-	Favourites_games     string `json:"favourites_games"`
-	Favourites_meals     string `json:"favourites_meals"`
+	Favorites_books      string `json:"favorites_books"`
+	Favorites_films      string `json:"favorites_films"`
+	Favorites_games      string `json:"favorites_games"`
+	Favorites_meals      string `json:"favorites_meals"`
 	Description          string `json:"description"`
 	Family_status        int8   `json:"family_status"`
 	Place_of_residence   string `json:"place_of_residence"`

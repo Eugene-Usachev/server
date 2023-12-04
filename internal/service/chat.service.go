@@ -43,13 +43,13 @@ func (service *ChatService) DeleteChat(ctx context.Context, userId uint, chatId 
 	return service.repository.DeleteChat(ctx, userId, chatId)
 }
 
-func (service *ChatService) GetChatsListAndInfoForUser(ctx context.Context, userId uint) (friends []uint, chatLists string, err error) {
+func (service *ChatService) GetChatsListAndInfoForUser(ctx context.Context, userId uint) (friends []uint, chatLists string, rawChats []uint, err error) {
 	return service.repository.GetChatsListAndInfoForUser(ctx, userId)
 }
 
 func (service *ChatService) GetChats(ctx context.Context, userId uint, chatsId string) ([]Entities.Chat, error) {
 	return service.repository.GetChats(ctx, userId, chatsId)
 }
-func (service *ChatService) UpdateChatLists(ctx context.Context, id uint, newChatLists string) error {
-	return service.repository.UpdateChatLists(ctx, id, newChatLists)
+func (service *ChatService) UpdateChatLists(ctx context.Context, id uint, newChatLists string, isSetRawChatsToEmpty bool) error {
+	return service.repository.UpdateChatLists(ctx, id, newChatLists, isSetRawChatsToEmpty)
 }

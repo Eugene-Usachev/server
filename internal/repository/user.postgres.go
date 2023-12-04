@@ -24,12 +24,12 @@ func (repository *UserPostgres) GetUserById(ctx context.Context, id uint) (Entit
 	row := repository.dataBases.Postgres.pool.QueryRow(ctx, `
 		SELECT name, surname, avatar, birthday, attitude_to_alcohol, attitude_to_smocking, attitude_to_sport,
 			   family_status, friends, users.subscribers,
-				favourites_books, favourites_films, favourites_games, favourites_meals, description, dreams,
+				favorites_books, favorites_films, favorites_games, favorites_meals, description, dreams,
 				place_of_residence  FROM users WHERE id = $1
 		`, id)
 	if err := row.Scan(&user.Name, &user.Surname, &user.Avatar, &user.Birthday, &user.Attitude_to_alcohol, &user.Attitude_to_smocking,
-		&user.Attitude_to_sport, &user.Family_status, &user.Friends, &user.Subscribers, &user.Favourites_books, &user.Favourites_films,
-		&user.Favourites_games, &user.Favourites_meals, &user.Description, &user.Dreams, &user.Place_of_residence); err != nil {
+		&user.Attitude_to_sport, &user.Family_status, &user.Friends, &user.Subscribers, &user.Favorites_books, &user.Favorites_films,
+		&user.Favorites_games, &user.Favorites_meals, &user.Description, &user.Dreams, &user.Place_of_residence); err != nil {
 		return user, err
 	}
 	return user, nil
@@ -124,13 +124,13 @@ func (repository *UserPostgres) GetUsers(ctx context.Context, idOfUsers string) 
 
 func (repository *UserPostgres) UpdateUser(ctx context.Context, id uint, UpdateUserDTO Entities.UpdateUserDTO) error {
 	var err error
-	_, err = repository.dataBases.Postgres.pool.Exec(ctx, `UPDATE users SET favourites_films=$2, favourites_books=$3,
-		 favourites_games=$4, dreams = $5,attitude_to_sport =$6, attitude_to_alcohol =$7, attitude_to_smocking =$8 ,
-		 place_of_residence =$9, family_status =$10,name =$11, surname=$12, birthday=$13, favourites_meals=$14, description=$15 WHERE id = $1`,
-		id, UpdateUserDTO.Favourites_films, UpdateUserDTO.Favourites_books, UpdateUserDTO.Favourites_games,
+	_, err = repository.dataBases.Postgres.pool.Exec(ctx, `UPDATE users SET favorites_films=$2, favorites_books=$3,
+		 favorites_games=$4, dreams = $5,attitude_to_sport =$6, attitude_to_alcohol =$7, attitude_to_smocking =$8 ,
+		 place_of_residence =$9, family_status =$10,name =$11, surname=$12, birthday=$13, favorites_meals=$14, description=$15 WHERE id = $1`,
+		id, UpdateUserDTO.Favorites_films, UpdateUserDTO.Favorites_books, UpdateUserDTO.Favorites_games,
 		UpdateUserDTO.Dreams, UpdateUserDTO.Attitude_to_sport, UpdateUserDTO.Attitude_to_alcohol, UpdateUserDTO.Attitude_to_smocking,
 		UpdateUserDTO.Place_of_residence, UpdateUserDTO.Family_status, UpdateUserDTO.Name, UpdateUserDTO.Surname, UpdateUserDTO.Birthday,
-		UpdateUserDTO.Favourites_meals, UpdateUserDTO.Description)
+		UpdateUserDTO.Favorites_meals, UpdateUserDTO.Description)
 	return err
 }
 

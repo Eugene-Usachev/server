@@ -76,8 +76,16 @@ func (handler *Handler) InitMiddlewares(app *fiber.App) {
 		})
 	} else {
 		app.Use(func(c *fiber.Ctx) error {
+			defer func() {
+				if err := recover(); err != nil {
+					handler.Logger.Error("Handled panic in http handler, reason: ", err)
+				}
+			}()
 			startTime := time.Now()
-			c.Next()
+			err := c.Next()
+			if err != nil {
+				handler.Logger.Error("Handled error in http handler, reason: ", err)
+			}
 			end := time.Since(startTime).Microseconds()
 			method := c.Method()
 			path := c.Path()
@@ -87,9 +95,6 @@ func (handler *Handler) InitMiddlewares(app *fiber.App) {
 			return nil
 		})
 	}
-
-	// TODO prod
-	//app.Use(recover.New())
 }
 
 func (handler *Handler) InitRoutes(app *fiber.App, websocketHub *websocket.Hub) {
@@ -175,7 +180,7 @@ func (handler *Handler) InitRoutes(app *fiber.App, websocketHub *websocket.Hub) 
 		{
 			chat.Get("/", handler.getChats)
 			chat.Get("/list/", handler.getChatsList)
-			chat.Patch("/list/", handler.UpdateChatLists)
+			chat.Patch("/list/", handler.UpdateChatsLists)
 		}
 		message := api.Group("/message", handler.CheckAuth)
 		{
