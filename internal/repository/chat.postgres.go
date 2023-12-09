@@ -28,7 +28,7 @@ func (repository *ChatPostgres) CreateChat(ctx context.Context, chatDTO Entities
 		return 0, err
 	}
 
-	if _, err = tx.Exec(ctx, `UPDATE users SET all_chats = array_append(all_chats, $1) WHERE id = ANY($2)`, chatId, chatDTO.Members); err != nil {
+	if _, err = tx.Exec(ctx, `UPDATE users SET raw_chats = array_append(raw_chats, $1) WHERE id = ANY($2)`, chatId, chatDTO.Members); err != nil {
 		return 0, err
 	}
 
@@ -61,21 +61,22 @@ func (repository *ChatPostgres) DeleteChat(ctx context.Context, userId, chatId u
 }
 
 // GetChats TODO time of time we need to check exists chats and remove deleted
-func (repository *ChatPostgres) GetChatsListAndInfoForUser(ctx context.Context, userId uint) (friends []uint, subscribers []uint, chatLists string, err error) {
+func (repository *ChatPostgres) GetChatsListAndInfoForUser(ctx context.Context, userId uint) (friends []uint, chatLists string, rawChats []uint, err error) {
 	friends = []uint{}
-	subscribers = []uint{}
+	rawChats = []uint{}
 	err = repository.dataBases.Postgres.pool.QueryRow(ctx, `
-		SELECT chat_lists, subscribers, friends
+		SELECT chat_lists, friends, raw_chats
 		FROM users
 		WHERE id = $1
-	`, userId).Scan(&chatLists, &subscribers, &friends)
+	`, userId).Scan(&chatLists, &friends, &rawChats)
 
-	return friends, subscribers, chatLists, err
+	return friends, chatLists, rawChats, err
 }
 
 func (repository *ChatPostgres) GetChats(ctx context.Context, userId uint, chatsId string) ([]Entities.Chat, error) {
 	chats := []Entities.Chat{}
-	rows, err := repository.dataBases.Postgres.pool.Query(ctx, `SELECT id, name, avatar, members FROM chats WHERE id = ANY($1) AND $2 = ANY(members)`, chatsId, userId)
+	rows, err := repository.dataBases.Postgres.pool.Query(ctx, `SELECT id, name, avatar, members FROM chats 
+                                 WHERE id IN (`+chatsId+`) AND $1 = ANY(members)`, userId)
 	if err != nil {
 		return []Entities.Chat{}, err
 	}
@@ -91,7 +92,12 @@ func (repository *ChatPostgres) GetChats(ctx context.Context, userId uint, chats
 	return chats, nil
 }
 
-func (repository *ChatPostgres) UpdateChatLists(ctx context.Context, id uint, newChatLists string) error {
+func (repository *ChatPostgres) UpdateChatLists(ctx context.Context, id uint, newChatLists string, isSetRawChatsToEmpty bool) error {
+	if isSetRawChatsToEmpty {
+		_, err := repository.dataBases.Postgres.pool.Exec(ctx, `UPDATE users SET chat_lists=$2, raw_chats='{}' WHERE id=$1`, id, newChatLists)
+		return err
+	}
+
 	_, err := repository.dataBases.Postgres.pool.Exec(ctx, `UPDATE users SET chat_lists=$2 WHERE id=$1`, id, newChatLists)
 	return err
 }

@@ -9,10 +9,10 @@ CREATE TABLE IF NOT EXISTS users (
     subscribers           integer []     default ARRAY[]::int[],
     avatar                varchar(64)    default '',
     birthday              varchar(32)    default '',
-    favourites_books      text           default '',
-    favourites_films      text           default '',
-    favourites_games      text           default '',
-    favourites_meals      text           default '',
+    favorites_books      text           default '',
+    favorites_films      text           default '',
+    favorites_games      text           default '',
+    favorites_meals      text           default '',
     description           varchar(256)   default '',
     family_status         SMALLINT       default -1,
     place_of_residence    varchar(64)    default '',
@@ -20,8 +20,9 @@ CREATE TABLE IF NOT EXISTS users (
     attitude_to_sport     SMALLINT       default -1,
     attitude_to_alcohol   SMALLINT       default -1,
     dreams                varchar(256)   default '',
-    /** [0] - favourites, [1] - other and next is object (name - list) */
-    chat_lists            text           default '{"favourites": [],"other": []}'
+    /** [0] - favorites, [1] - other and next is object (name - list) */
+    chat_lists            text           default '{"Favorites": [], "Friends": [], "Other": []}',
+    raw_chats             int []         default ARRAY[]::int[] []
 );
 
 CREATE TABLE IF NOT EXISTS posts (
@@ -118,7 +119,7 @@ CREATE TABLE IF NOT EXISTS messages (
     id                serial        NOT NULL PRIMARY KEY,
     parent_chat_id    int           NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
     parent_user_id	  int           NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    data              varchar(256),
+    data              varchar(4096),
     date              int8			default 0,
     files             text []       default ARRAY[]::text[] [],
     message_parent_id int

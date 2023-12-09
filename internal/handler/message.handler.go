@@ -5,117 +5,6 @@ import (
 	"strconv"
 )
 
-//func (handler *Handler) sendMessage(request websocket2.ParsedRequest, hub *websocket2.Hub) {
-//	defer handlePanic()
-//	if !prepareAuthRequest(request) {
-//		return
-//	}
-//	var message Entities.MessageDTO
-//	err := json.Unmarshal([]byte(request.Data.(string)), &message)
-//	if err != nil {
-//		log.Println(err.Error())
-//		return
-//	}
-//	id, members, date, err := handler.services.SaveMessage(context.Background(), request.Client.userId, message)
-//	if err != nil {
-//		request.Client.send <- []byte(err.Error())
-//		return
-//	}
-//
-//	message.Id = id
-//	message.Date = date
-//	var (
-//		jsonResponse []byte
-//	)
-//	jsonResponse, err = json.Marshal(map[string]interface{}{
-//		"method": "newMessage",
-//		"data":   message,
-//	})
-//	if err != nil {
-//		request.Client.send <- []byte(err.Error())
-//		return
-//	}
-//
-//	sendDataToMembers(hub, jsonResponse, members)
-//}
-//
-//type UpdateMessageDTO struct {
-//	MessageId uint   `json:"message_id" binding:"required"`
-//	Data      string `json:"data" binding:"required"`
-//}
-//
-//func (handler *Handler) updateMessage(request websocket2.ParsedRequest, hub *websocket2.Hub) {
-//	defer handlePanic()
-//	if !prepareAuthRequest(request) {
-//		return
-//	}
-//	var dto UpdateMessageDTO
-//	err := json.Unmarshal([]byte(request.Data.(string)), &dto)
-//	if err != nil {
-//		return
-//	}
-//	members, err := handler.services.UpdateMessage(context.Background(), dto.MessageId, request.Client.userId, dto.Data)
-//	if err != nil {
-//		request.Client.send <- []byte(err.Error())
-//		return
-//	}
-//	var jsonResponse []byte
-//	jsonResponse, err = json.Marshal(map[string]any{
-//		"method": "updateMessage",
-//		"data":   []any{dto.Data, dto.MessageId},
-//	})
-//	if err != nil {
-//		log.Printf("error encoding json: %v\n", err)
-//		return
-//	}
-//	sendDataToMembers(hub, jsonResponse, members)
-//}
-//
-//func (handler *Handler) deleteMessage(request websocket2.ParsedRequest, hub *websocket2.Hub) {
-//	defer handlePanic()
-//	if !prepareAuthRequest(request) {
-//		return
-//	}
-//	var dto uint
-//	err := json.Unmarshal([]byte(request.Data.(string)), &dto)
-//	if err != nil {
-//		return
-//	}
-//	members, err := handler.services.DeleteMessage(context.Background(), dto, request.Client.userId)
-//	if err != nil {
-//		request.Client.send <- []byte(err.Error())
-//		return
-//	}
-//	var jsonResponse []byte
-//	jsonResponse, err = json.Marshal(map[string]interface{}{
-//		"method": "deleteMessage",
-//		"data":   dto,
-//	})
-//	if err != nil {
-//		log.Printf("error encoding json: %v\n", err)
-//		return
-//	}
-//	sendDataToMembers(hub, jsonResponse, members)
-//}
-//
-//func prepareAuthRequest(parsedRequest websocket2.ParsedRequest) bool {
-//	if parsedRequest.Client.userId == 0 {
-//		parsedRequest.Client.send <- []byte("401 Not Allowed\r\n")
-//		return false
-//	}
-//	return true
-//}
-//
-//func sendDataToMembers(hub *websocket2.Hub, data []byte, members []uint) {
-//	defer handlePanic()
-//	for _, member := range members {
-//		client := hub.authClients[member]
-//		if client != nil {
-//			client.send <- data
-//		}
-//	}
-//}
-
 func (handler *Handler) getLastMessages(c *fiber.Ctx) error {
 	userId, exists := c.Locals("userId").(uint)
 	if !exists {
@@ -149,7 +38,5 @@ func (handler *Handler) getMessages(c *fiber.Ctx) error {
 		return NewErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(fiber.Map{
-		"messages": messages,
-	})
+	return c.Status(fiber.StatusOK).JSON(messages)
 }

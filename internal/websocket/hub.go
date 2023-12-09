@@ -22,7 +22,7 @@ type Hub struct {
 	// Unauthorized clients (!) in this node.
 	unauthClients map[*Client]bool
 	// Authorized clients (!) in this node.
-	authClients map[int]*Client
+	AuthClients map[int]*Client
 	// Inbound messages from the clients.
 	broadcast chan ParsedRequest
 	// register requests from the clients.
@@ -46,7 +46,7 @@ func NewHub(service *service.Service, redisClient rueidis.Client, accessConverte
 		register:        make(chan *Client),
 		unregister:      make(chan *Client),
 		unauthClients:   make(map[*Client]bool),
-		authClients:     make(map[int]*Client),
+		AuthClients:     make(map[int]*Client),
 		accessConverter: accessConverter,
 		logger:          logger,
 		handler:         newHandler(service),
@@ -74,9 +74,9 @@ func (hub *Hub) newEmptyClient() *Client {
 	}
 }
 
-func createResponse(messageType string, data string) ([]byte, error) {
-	return json.Marshal(map[string]string{
-		"method": messageType,
+func createResponse(method any, data any) ([]byte, error) {
+	return json.Marshal(map[string]any{
+		"method": method,
 		"data":   data,
 	})
 }
@@ -94,7 +94,7 @@ func (hub *Hub) Run() {
 		case client := <-hub.register:
 			clientId := client.userId
 			if clientId != -1 {
-				hub.authClients[clientId] = client
+				hub.AuthClients[clientId] = client
 				_, _ = hub.redis.Do(client.ctx, hub.redis.B().Smembers().Key(strconv.Itoa(clientId)).Build()).ToAny()
 			} else {
 				hub.unauthClients[client] = true
@@ -113,7 +113,7 @@ func (hub *Hub) Run() {
 					// We call Error only for wait the operation
 					_ = hub.redis.DoMulti(context.Background(), needToDo...)[0].Error()
 				}
-				delete(hub.authClients, client.userId)
+				delete(hub.AuthClients, client.userId)
 			} else {
 				delete(hub.unauthClients, client)
 			}
@@ -152,12 +152,11 @@ func (hub *Hub) ServeWs(conn *websocket.Conn) {
 }
 
 func (hub *Hub) subscribeClient(client *Client) {
-	dedicatedClient, err := hub.redis.Dedicate()
-	if err != nil {
-		client.Close()
-		return
-	}
-	defer dedicatedClient.Close()
+	dedicatedClient, cancel := hub.redis.Dedicate()
+	defer func() {
+		cancel()
+		dedicatedClient.Close()
+	}()
 	dedicatedClient.Receive(client.ctx, hub.redis.B().Ssubscribe().Channel(strconv.Itoa(client.userId)).Build(), func(msg rueidis.PubSubMessage) {
 		client.send <- fb.S2B(msg.Message)
 	})
@@ -168,15 +167,12 @@ func (hub *Hub) getOnlineUsers(necessaryToGet []interface{}) []byte {
 	var onlineUsers = []int{}
 	for _, userId := range necessaryToGet {
 		userIdI := int(userId.(float64))
-		if hub.authClients[userIdI] != nil {
+		if hub.AuthClients[userIdI] != nil {
 			onlineUsers = append(onlineUsers, userIdI)
 		}
 	}
 
-	onlineUsersJSON, _ := json.Marshal(map[string]interface{}{
-		"data":   onlineUsers,
-		"method": "getOnlineUsers",
-	})
+	onlineUsersJSON, _ := createResponse("getOnlineUsers", onlineUsers)
 
 	return onlineUsersJSON
 }

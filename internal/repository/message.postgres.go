@@ -55,7 +55,7 @@ func (repository *MessagePostgres) SaveMessage(ctx context.Context, userId uint,
 	return messageId, chatMembers, nil
 }
 
-func (repository *MessagePostgres) UpdateMessage(ctx context.Context, messageId, userId uint, newData int64) ([]uint, error) {
+func (repository *MessagePostgres) UpdateMessage(ctx context.Context, messageId, userId uint, newData string) ([]uint, error) {
 	var members []uint
 	row := repository.dataBases.Postgres.pool.QueryRow(ctx, `
 		WITH new_message AS (
@@ -131,10 +131,10 @@ func (repository *MessagePostgres) GetLastMessages(ctx context.Context, userId u
 	return array, nil
 }
 
-func (repository *MessagePostgres) GetMessages(ctx context.Context, chatId, offset uint) ([20]Entities.Message, error) {
+func (repository *MessagePostgres) GetMessages(ctx context.Context, chatId, offset uint) ([]Entities.Message, error) {
 	var (
 		err   error
-		array = [20]Entities.Message{}
+		array = []Entities.Message{}
 		rows  pgx.Rows
 		i     uint8 = 0
 	)
@@ -156,7 +156,7 @@ func (repository *MessagePostgres) GetMessages(ctx context.Context, chatId, offs
 		if err = rows.Scan(&message.ID, &message.ParentChatID, &message.ParentUserID, &message.Files, &message.Data, &message.Date, &message.MessageParentID); err != nil {
 			continue
 		}
-		array[i] = message
+		array = append(array, message)
 		i++
 	}
 

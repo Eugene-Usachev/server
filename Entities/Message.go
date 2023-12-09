@@ -8,7 +8,7 @@ type Message struct {
 	ParentChatID    uint     `json:"parent_chat_id"`
 	ParentUserID    uint     `json:"parent_user_id"`
 	Data            string   `json:"data"`
-	Date            string   `json:"date"`
+	Date            int64    `json:"date"`
 	Files           []string `json:"files"`
 	MessageParentID uint     `json:"message_parent_id"`
 }

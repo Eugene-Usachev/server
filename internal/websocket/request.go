@@ -1,15 +1,18 @@
 package websocket
 
-var (
-	getOnlineUsersMethod = uint8(0)
+const (
+	getOnlineUsers = uint8(iota)
 
-	createChatMethod = uint8(1)
-	updateChatMethod = uint8(2)
-	deleteChatMethod = uint8(3)
+	createChat
+	updateChat
+	deleteChat
 
-	sendMessageMethod   = uint8(4)
-	updateMessageMethod = uint8(5)
-	deleteMessageMethod = uint8(6)
+	sendMessage
+	updateMessage
+	deleteMessage
+
+	// need to set length to the router
+	size
 )
 
 type ParsedRequest struct {

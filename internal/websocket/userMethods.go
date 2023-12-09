@@ -20,14 +20,14 @@ func (handler *Handler) getOnlineUsers(request ParsedRequest) {
 			userIdI := int(userId.(float64))
 			strId := strconv.Itoa(userIdI)
 			needToSubscribe = append(needToSubscribe, strId)
-			if handler.hub.authClients[userIdI] != nil {
+			if handler.hub.AuthClients[userIdI] != nil {
 				onlineUsersSlice = append(onlineUsersSlice, userIdI)
 			} else {
 				needToGetFromRedis = append(needToGetFromRedis, strId)
 			}
 		}
 		if len(needToSubscribe) > 0 {
-			err = handler.service.SubscribeOnUsers(request.Client.ctx, needToSubscribe, clientIdStr)
+			err = handler.services.SubscribeOnUsers(request.Client.ctx, needToSubscribe, clientIdStr)
 			if err != nil {
 				onlineUsersJSON, _ := json.Marshal(map[string]interface{}{
 					"data":   onlineUsersSlice,
@@ -42,7 +42,7 @@ func (handler *Handler) getOnlineUsers(request ParsedRequest) {
 		for _, userId := range array {
 			userIdI := int(userId.(float64))
 			strId := strconv.Itoa(userIdI)
-			if handler.hub.authClients[userIdI] != nil {
+			if handler.hub.AuthClients[userIdI] != nil {
 				onlineUsersSlice = append(onlineUsersSlice, userIdI)
 			} else {
 				needToGetFromRedis = append(needToGetFromRedis, strId)
@@ -51,7 +51,7 @@ func (handler *Handler) getOnlineUsers(request ParsedRequest) {
 	}
 	var users []int
 	if len(needToGetFromRedis) > 0 {
-		users, err = handler.service.GetOnlineUsers(request.Client.ctx, needToGetFromRedis)
+		users, err = handler.services.GetOnlineUsers(request.Client.ctx, needToGetFromRedis)
 		if err != nil {
 			onlineUsersJSON, _ := json.Marshal(map[string]interface{}{
 				"data":   onlineUsersSlice,

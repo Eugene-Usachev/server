@@ -46,6 +46,7 @@ func (repository *PostPostgres) CreatePost(ctx context.Context, id uint, postDTO
 func (repository *PostPostgres) GetPostsByUserId(ctx context.Context, authorId uint, offset uint, userId uint) ([]Entities.GetPostDTO, []Entities.GetSurveyDTO, error) {
 	rows, err := repository.dataBases.Postgres.pool.Query(ctx, `SELECT id, likes, dislikes, data, date, files, have_a_survey
 		FROM posts WHERE parent_user_id = $1 ORDER BY id DESC LIMIT 20 OFFSET $2`, authorId, offset)
+	defer rows.Close()
 	if err != nil {
 		return []Entities.GetPostDTO{}, []Entities.GetSurveyDTO{}, err
 	}
@@ -469,6 +470,7 @@ func (repository *PostPostgres) GetCommentsByPostId(ctx context.Context, postId 
 		query := fastbytes.B2S(append(append(fastbytes.S2B(`SELECT parent_comment_id FROM comments_likes
                          WHERE user_id = $1 AND parent_comment_id IN (`), buf...), ')'))
 		rows, err = repository.dataBases.Postgres.pool.Query(ctx, query, userId)
+		defer rows.Close()
 
 		if err != nil {
 			repository.dataBases.Postgres.logger.Error("GetCommentsByPostId can't get comments likes", err.Error())
@@ -509,6 +511,7 @@ func (repository *PostPostgres) GetCommentsByPostId(ctx context.Context, postId 
 
 			query = fastbytes.B2S(append(append(fastbytes.S2B(`SELECT parent_comment_id FROM comments_dislikes WHERE user_id = $1 AND parent_comment_id IN (`), buf...), ')'))
 			rows, err = repository.dataBases.Postgres.pool.Query(ctx, query, userId)
+			defer rows.Close()
 			if err != nil {
 				repository.dataBases.Postgres.logger.Error("GetCommentsByPostId can't get comments dislikes", err.Error())
 				return comments, err
