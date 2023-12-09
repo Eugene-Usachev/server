@@ -14,7 +14,7 @@ type Handler struct {
 }
 
 func newHandler(service *service.Service) *Handler {
-	var router = make([]handlerFunc, 256)
+	var router = make([]handlerFunc, size)
 	handler := &Handler{
 		services: service,
 		router:   router,
@@ -24,6 +24,9 @@ func newHandler(service *service.Service) *Handler {
 	router[createChat] = handler.createChat
 	router[updateChat] = handler.updateChat
 	router[deleteChat] = handler.deleteChat
+	router[sendMessage] = handler.sendMessage
+	router[updateMessage] = handler.updateMessage
+	router[deleteMessage] = handler.deleteMessage
 	return handler
 }
 
@@ -40,6 +43,10 @@ func sendDataToMembers(hub *Hub, jsonResponse []byte, members []uint) {
 func (handler *Handler) handle(request ParsedRequest) bool {
 	method, err := strconv.Atoi(string(request.Method))
 	if err != nil {
+		handler.hub.logger.Error("Unexpected method: ", request.Method)
+		return false
+	}
+	if uint8(method) >= size {
 		handler.hub.logger.Error("Unexpected method: ", request.Method)
 		return false
 	}

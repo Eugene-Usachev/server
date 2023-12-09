@@ -21,7 +21,7 @@ func (service *MessageService) SaveMessage(ctx context.Context, userId uint, mes
 	id, members, err := service.repository.SaveMessage(ctx, userId, messageDTO)
 	return id, members, messageDTO.Date, err
 }
-func (service *MessageService) UpdateMessage(ctx context.Context, messageId uint, userId uint, newData int64) ([]uint, error) {
+func (service *MessageService) UpdateMessage(ctx context.Context, messageId uint, userId uint, newData string) ([]uint, error) {
 	return service.repository.UpdateMessage(ctx, messageId, userId, newData)
 }
 func (service *MessageService) DeleteMessage(ctx context.Context, messageId uint, userId uint) ([]uint, error) {
@@ -32,6 +32,6 @@ func (service *MessageService) GetLastMessages(ctx context.Context, userId uint,
 	return service.repository.GetLastMessages(ctx, userId, chatsId)
 }
 
-func (service *MessageService) GetMessages(ctx context.Context, chatId, offset uint) ([20]Entities.Message, error) {
+func (service *MessageService) GetMessages(ctx context.Context, chatId, offset uint) ([]Entities.Message, error) {
 	return service.repository.GetMessages(ctx, chatId, offset)
 }

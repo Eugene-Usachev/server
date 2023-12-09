@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS messages (
     id                serial        NOT NULL PRIMARY KEY,
     parent_chat_id    int           NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
     parent_user_id	  int           NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    data              varchar(256),
+    data              varchar(4096),
     date              int8			default 0,
     files             text []       default ARRAY[]::text[] [],
     message_parent_id int

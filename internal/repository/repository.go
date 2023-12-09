@@ -63,10 +63,10 @@ type Post interface {
 
 type Message interface {
 	SaveMessage(ctx context.Context, userId uint, messageDTO Entities.MessageDTO) (uint, []uint, error)
-	UpdateMessage(ctx context.Context, messageId, userId uint, newData int64) ([]uint, error)
+	UpdateMessage(ctx context.Context, messageId, userId uint, newData string) ([]uint, error)
 	DeleteMessage(ctx context.Context, messageId, userId uint) ([]uint, error)
 	GetLastMessages(ctx context.Context, userId uint, chatsId string) ([]Entities.Message, error)
-	GetMessages(ctx context.Context, chatId, offset uint) ([20]Entities.Message, error)
+	GetMessages(ctx context.Context, chatId, offset uint) ([]Entities.Message, error)
 }
 
 type Chat interface {
