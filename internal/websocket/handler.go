@@ -13,11 +13,12 @@ type Handler struct {
 	router   []handlerFunc
 }
 
-func newHandler(service *service.Service) *Handler {
+func newHandler(hub *Hub, service *service.Service) *Handler {
 	var router = make([]handlerFunc, size)
 	handler := &Handler{
 		services: service,
 		router:   router,
+		hub:      hub,
 	}
 
 	router[getOnlineUsers] = handler.getOnlineUsers

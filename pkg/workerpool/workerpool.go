@@ -74,36 +74,17 @@ func (wp *WorkerPool[T]) TuneTo(n int) {
 }
 
 func (wp *WorkerPool[T]) Fire(n int) {
-	needToStay := wp.num - n
-	wp.Release()
-	for i := 0; i < needToStay; i++ {
-		go func() {
-			for {
-				select {
-				case args := <-wp.Work:
-					wp.f(args)
-				case <-wp.Vacation:
-					return
-				}
-			}
-		}()
+	for i := 0; i < n; i++ {
+		wp.Vacation <- true
 	}
 	wp.num -= n
 }
 
 func (wp *WorkerPool[T]) FireTo(n int) {
-	wp.Release()
-	for i := 0; i < n; i++ {
-		go func() {
-			for {
-				select {
-				case args := <-wp.Work:
-					wp.f(args)
-				case <-wp.Vacation:
-					return
-				}
-			}
-		}()
+	i := wp.num - n
+	for i > 0 {
+		wp.Vacation <- true
+		i--
 	}
 	wp.num = n
 }

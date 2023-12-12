@@ -23,10 +23,6 @@ const (
 	maxMessageSize = 1024
 )
 
-const (
-	onlineUsers = "ou"
-)
-
 var Config *websocket.Config = nil
 
 func InitConfig(logger *loggerLib.FastLogger) {
@@ -42,7 +38,6 @@ func InitConfig(logger *loggerLib.FastLogger) {
 	}
 }
 
-// TODO use pool
 type Client struct {
 	hub *Hub
 
@@ -61,7 +56,7 @@ type Client struct {
 	//cancel is function to cancel the ctx.
 	cancel context.CancelFunc
 
-	// subscriptions keeps list of subscriptions on Redis
+	// subscriptions keep a list of subscriptions on Redis
 	subscriptions []string
 }
 
@@ -108,6 +103,8 @@ func (client *Client) startWritePump() {
 	}()
 	for {
 		select {
+		case <-client.ctx.Done():
+			return
 		case message, ok := <-client.send:
 			err := client.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err != nil {
