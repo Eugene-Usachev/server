@@ -37,7 +37,7 @@ func (service *UserService) UpdateUser(ctx context.Context, id uint, UpdateUserD
 }
 
 func (service *UserService) ChangeAvatar(ctx *fiber.Ctx, userId uint) (string, error) {
-	path := fmt.Sprintf("./static/UserFiles/%d/Image/", userId)
+	path := fmt.Sprintf("../static/UserFiles/%d/Image/", userId)
 
 	fileName, err := files.UploadImage(ctx, path)
 	if err != nil {

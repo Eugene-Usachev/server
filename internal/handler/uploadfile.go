@@ -20,9 +20,9 @@ func (handler *Handler) uploadFile(ctx *fiber.Ctx) error {
 	}
 
 	file := form.File["file"][0]
+
 	ext := filepath.Ext(file.Filename)
 	var folder string
-
 	switch strings.ToLower(ext) {
 	case ".jpg", ".jpeg", ".png", ".gif":
 		folder = "Image"

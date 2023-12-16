@@ -122,7 +122,7 @@ func (handler *Handler) InitRoutes(app *fiber.App, websocketHub *websocket.Hub) 
 		{
 			user.Get("/subs/", handler.getUserSubsIds)
 			user.Patch("/", handler.updateUser)
-			user.Post("/avatar/", handler.changeAvatar)
+			user.Patch("/avatar/", handler.changeAvatar)
 			user.Patch("/friends/add/:id", handler.addToFriends)
 			user.Patch("/friends/delete/:id", handler.deleteFromFriends)
 			user.Patch("/subscribers/add/:id", handler.addToSubs)

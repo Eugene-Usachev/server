@@ -131,9 +131,7 @@ func (handler *Handler) changeAvatar(ctx *fiber.Ctx) error {
 		handler.Logger.Error("change avatar error: " + err.Error())
 		return NewErrorResponse(ctx, fiber.StatusInternalServerError, err.Error())
 	}
-	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
-		"fileName": fileName,
-	})
+	return ctx.Status(fiber.StatusOK).SendString(fileName)
 }
 
 func (handler *Handler) addToFriends(c *fiber.Ctx) error {

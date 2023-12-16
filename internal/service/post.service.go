@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"mime/multipart"
-	"path/filepath"
 )
 
 type PostService struct {
@@ -29,41 +28,32 @@ func NewDate() int64 {
 
 /*region post*/
 
-func (service *PostService) CreatePost(ctx *fiber.Ctx, id uint, postDTO Entities.CreatePostDTO, surveyDTO Entities.CreateSurveyDTO, files []*multipart.FileHeader) (uint, error) {
-	path := fmt.Sprintf("./static/UserFiles/%d/", id)
-	var (
-		postFiles []string
-	)
-	for _, file := range files {
-		switch ext := filepath.Ext(file.Filename); ext {
-		case ".jpg", ".jpeg", ".png":
-			if image, e := filesLib.UploadFile(ctx, file, path+"Images/"); e == nil {
-				postFiles = append(postFiles, image)
-			} else {
-				return 0, errors.New("failed to upload files")
-			}
-		case ".mp3", ".wav":
-			if music, e := filesLib.UploadFile(ctx, file, path+"Musics/"); e == nil {
-				postFiles = append(postFiles, music)
-			} else {
-				return 0, errors.New("failed to upload files")
-			}
-		case ".mp4", ".avi":
-			if video, e := filesLib.UploadFile(ctx, file, path+"Videos/"); e == nil {
-				postFiles = append(postFiles, video)
-			} else {
-				return 0, errors.New("failed to upload files")
-			}
-		default:
-			if other, e := filesLib.UploadFile(ctx, file, path+"Others/"); e == nil {
-				postFiles = append(postFiles, other)
-			} else {
-				return 0, errors.New("failed to upload files")
-			}
-		}
+var (
+	ErrUserIdIsRequired = errors.New("userId is required")
+)
+
+func uploadPostFiles(ctx *fiber.Ctx) ([]string, error) {
+	userId := ctx.Locals("userId")
+	if userId.(uint) < 1 {
+		return []string{}, ErrUserIdIsRequired
 	}
 
-	postDTO.Files = postFiles
+	form, err := ctx.MultipartForm()
+	if err != nil {
+		return []string{}, err
+	}
+
+	files := form.File["file"]
+	return filesLib.UploadPostFiles(ctx, files, fmt.Sprintf("./static/UserFiles/%d/", userId.(uint)))
+}
+
+func (service *PostService) CreatePost(ctx *fiber.Ctx, id uint, postDTO Entities.CreatePostDTO, surveyDTO Entities.CreateSurveyDTO, files []*multipart.FileHeader) (uint, error) {
+	paths, err := uploadPostFiles(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	postDTO.Files = paths
 	return service.repository.CreatePost(ctx.Context(), id, postDTO, surveyDTO, NewDate())
 }
 
