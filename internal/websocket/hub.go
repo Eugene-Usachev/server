@@ -168,7 +168,7 @@ func (hub *Hub) Close() {
 	hub.redis.Close()
 }
 
-var welcomeMessage = fb.S2B("Welcome")
+var welcomeMessage = "Welcome"
 
 // ServeWs handles websocket requests from the peer.
 func (hub *Hub) ServeWs(conn *websocket.Conn) {
@@ -188,7 +188,8 @@ func (hub *Hub) ServeWs(conn *websocket.Conn) {
 
 	go client.startWritePump()
 	//go hub.subscribeClient(client)
-	client.send <- welcomeMessage
+	res, _ := createResponse(welcomeMessage, []byte{})
+	client.send <- res
 	client.startReadPump()
 
 }

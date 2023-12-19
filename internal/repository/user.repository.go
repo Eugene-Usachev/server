@@ -64,6 +64,10 @@ func (repository *UserPostgres) GetFriendsAndSubs(ctx context.Context, clientId,
 	return DTO, nil
 }
 
+const (
+	miniUsersPrefix = "MU"
+)
+
 // GetUsersForFriendsPage TODO new table instead of subscribers list (too slow)
 func (repository *UserPostgres) GetUsersForFriendsPage(ctx context.Context, idOfUsers string, clientId uint) ([]Entities.FriendUser, error) {
 	var miniUsers = []Entities.FriendUser{}
@@ -105,6 +109,7 @@ func (repository *UserPostgres) GetUsersForFriendsPage(ctx context.Context, idOf
 
 func (repository *UserPostgres) GetUsers(ctx context.Context, idOfUsers string) ([]Entities.MiniUser, error) {
 	var miniUsers = []Entities.MiniUser{}
+
 	str := fmt.Sprintf(`SELECT id, name, surname, avatar FROM users WHERE id IN %s`, idOfUsers)
 	rows, err := repository.dataBases.Postgres.pool.Query(ctx, str)
 	defer rows.Close()
@@ -119,6 +124,7 @@ func (repository *UserPostgres) GetUsers(ctx context.Context, idOfUsers string) 
 	if err != nil {
 		return nil, err
 	}
+
 	return miniUsers, nil
 }
 

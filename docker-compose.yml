@@ -83,3 +83,13 @@ services:
       - type: bind
         source: ./static
         target: /static
+
+  client:
+    restart: no
+    build:
+      context: ../client
+      dockerfile: dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - app
