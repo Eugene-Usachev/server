@@ -25,10 +25,20 @@ func NewPostgresDB(ctx context.Context, maxAttempts uint8, cfg Config, logger *P
 		defer cancel()
 
 		pool, err = pgxpool.New(ctx1, url)
-		config, _ := pgxpool.ParseConfig(url)
+		if err != nil {
+			return err
+		}
+		config, err := pgxpool.ParseConfig(url)
+		if err != nil {
+			return err
+		}
 		config.ConnConfig.Tracer = logger
 		pool, err = pgxpool.NewWithConfig(ctx1, config)
 		if err != nil {
+			return err
+		}
+
+		if err = pool.Ping(ctx1); err != nil {
 			return err
 		}
 
@@ -37,11 +47,6 @@ func NewPostgresDB(ctx context.Context, maxAttempts uint8, cfg Config, logger *P
 
 	if err != nil {
 		log.Fatal("error do with tries postgresql")
-	}
-
-	err = pool.Ping(ctx)
-	if err != nil {
-		return nil, err
 	}
 
 	logger.logger.Info("creating tables for postgres")
