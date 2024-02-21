@@ -3,7 +3,6 @@ package metrics
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"strconv"
 )
 
 var requestMetrics = promauto.NewSummaryVec(prometheus.SummaryOpts{
@@ -18,5 +17,5 @@ var requestMetrics = promauto.NewSummaryVec(prometheus.SummaryOpts{
 }, []string{"method", "path", "status"})
 
 func ObserveRequest(duration float64, method string, path string, status int) {
-	requestMetrics.WithLabelValues(method, path, strconv.Itoa(status)).Observe(duration)
+	//requestMetrics.WithLabelValues(method, path, strconv.Itoa(status)).Observe(duration)
 }
