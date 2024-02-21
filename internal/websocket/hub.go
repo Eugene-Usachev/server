@@ -93,6 +93,7 @@ func (hub *Hub) Run() {
 		if p := recover(); p != nil {
 			hub.logger.Error("hub panic: ", p)
 		}
+		go hub.Run()
 	}()
 
 	for {
