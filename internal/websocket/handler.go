@@ -51,6 +51,7 @@ func (handler *Handler) handle(request ParsedRequest) bool {
 		handler.hub.logger.Error("Unexpected method: ", request.Method)
 		return false
 	}
+	handler.hub.logger.Info("Handle method: ", method)
 	function := handler.router[method]
 	if function != nil {
 		function(request)
