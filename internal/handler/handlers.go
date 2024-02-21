@@ -49,7 +49,7 @@ func (handler *Handler) InitMiddlewares(app *fiber.App) {
 		if fastbytes.Equal(c.Request().Header.Referer(), []byte("http://localhost:3000/")) {
 			c.Set("Access-Control-Allow-Origin", "http://localhost:3000")
 		} else {
-			c.Set("Access-Control-Allow-Origin", "http://client:3000")
+			c.Set("Access-Control-Allow-Origin", "https://client-olaz.onrender.com")
 		}
 		c.Set("Access-Control-Allow-Credentials", "true")
 		c.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
