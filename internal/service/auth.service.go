@@ -7,7 +7,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/Eugene-Usachev/fastbytes"
+	fb "github.com/Eugene-Usachev/fastbytes"
 	"github.com/Eugene-Usachev/fst"
 	"github.com/Eugene-Usachev/logger"
 	"hash"
@@ -45,8 +45,8 @@ func (services *AuthService) CreateUser(ctx context.Context, user Entities.UserD
 		return 0, err, Entities.AllTokenResponse{}
 	}
 	var tokens Entities.AllTokenResponse
-	tokens.AccessToken = services.accessConverter.NewToken(fastbytes.U2B(id))
-	tokens.RefreshToken = services.refreshConverter.NewToken(fastbytes.S2B(user.Password))
+	tokens.AccessToken = fb.B2S(services.accessConverter.NewToken(fb.U2B(id)))
+	tokens.RefreshToken = fb.B2S(services.refreshConverter.NewToken(fb.S2B(user.Password)))
 
 	return id, nil, tokens
 }
@@ -59,8 +59,8 @@ func (services *AuthService) SignIn(ctx context.Context, input Entities.SignInDT
 		return Entities.SignInReturnDTO{}, Entities.AllTokenResponse{}, err
 	}
 	var tokens Entities.AllTokenResponse
-	tokens.AccessToken = services.accessConverter.NewToken(fastbytes.U2B(user.ID))
-	tokens.RefreshToken = services.refreshConverter.NewToken(fastbytes.S2B(input.Password))
+	tokens.AccessToken = fb.B2S(services.accessConverter.NewToken(fb.U2B(user.ID)))
+	tokens.RefreshToken = fb.B2S(services.refreshConverter.NewToken(fb.S2B(input.Password)))
 	if err != nil {
 		return Entities.SignInReturnDTO{}, Entities.AllTokenResponse{}, err
 	}
@@ -74,7 +74,7 @@ var (
 )
 
 func (services *AuthService) Refresh(ctx context.Context, id uint, refreshToken string) (Entities.RefreshResponseDTO, error) {
-	passwordHash, err := services.refreshConverter.ParseToken(refreshToken)
+	passwordHash, err := services.refreshConverter.ParseToken(fb.S2B(refreshToken))
 	if err != nil {
 		return Entities.RefreshResponseDTO{}, err
 	}
@@ -82,30 +82,30 @@ func (services *AuthService) Refresh(ctx context.Context, id uint, refreshToken 
 		return Entities.RefreshResponseDTO{}, invalidTokenError
 	}
 	var dto Entities.RefreshResponseDTO
-	dto, err = services.repository.Refresh(ctx, id, fastbytes.B2S(passwordHash))
+	dto, err = services.repository.Refresh(ctx, id, fb.B2S(passwordHash))
 	if err != nil {
 		return Entities.RefreshResponseDTO{}, err
 	}
-	dto.AccessToken = services.accessConverter.NewToken(fastbytes.U2B(id))
-	dto.RefreshToken = services.refreshConverter.NewToken(passwordHash)
+	dto.AccessToken = fb.B2S(services.accessConverter.NewToken(fb.U2B(id)))
+	dto.RefreshToken = fb.B2S(services.refreshConverter.NewToken(passwordHash))
 	return dto, nil
 }
 
 func (services *AuthService) RefreshTokens(ctx context.Context, id uint, refreshToken string) (Entities.AllTokenResponse, error) {
-	passwordHash, err := services.refreshConverter.ParseToken(refreshToken)
+	passwordHash, err := services.refreshConverter.ParseToken(fb.S2B(refreshToken))
 	if err != nil {
 		return Entities.AllTokenResponse{}, err
 	}
 	if len(passwordHash) == 0 {
 		return Entities.AllTokenResponse{}, invalidTokenError
 	}
-	err = services.repository.CheckPassword(ctx, id, fastbytes.B2S(passwordHash))
+	err = services.repository.CheckPassword(ctx, id, fb.B2S(passwordHash))
 	if err != nil {
 		return Entities.AllTokenResponse{}, err
 	}
 	var dto Entities.AllTokenResponse
-	dto.AccessToken = services.accessConverter.NewToken(fastbytes.U2B(id))
-	dto.RefreshToken = services.refreshConverter.NewToken(passwordHash)
+	dto.AccessToken = fb.B2S(services.accessConverter.NewToken(fb.U2B(id)))
+	dto.RefreshToken = fb.B2S(services.refreshConverter.NewToken(passwordHash))
 	return dto, nil
 }
 
@@ -124,6 +124,6 @@ func generatePasswordHash(password string) string {
 	defer func() {
 		hashPool.Put(sha)
 	}()
-	sha.Write(fastbytes.S2B(password + SALT))
+	sha.Write(fb.S2B(password + SALT))
 	return fmt.Sprintf("%x", sha.Sum(nil))
 }

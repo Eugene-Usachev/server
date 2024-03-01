@@ -171,7 +171,7 @@ func (client *Client) verify(conn *websocket.Conn) int {
 	if accessToken == "" {
 		return -1
 	} else {
-		userId, err := client.hub.accessConverter.ParseToken(accessToken)
+		userId, err := client.hub.accessConverter.ParseToken(fb.S2B(accessToken))
 		if err != nil {
 			return -1
 		} else {

@@ -11,7 +11,7 @@ func (handler *Handler) CheckAuth(c *fiber.Ctx) error {
 	if accessToken == "" {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	} else {
-		userId, err := handler.accessConverter.ParseToken(accessToken)
+		userId, err := handler.accessConverter.ParseToken(fastbytes.S2B(accessToken))
 		if err != nil {
 			return c.SendStatus(fiber.StatusUnauthorized)
 		} else {

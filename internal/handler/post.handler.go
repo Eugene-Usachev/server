@@ -99,7 +99,7 @@ func (handler *Handler) getPostsByUserID(c *fiber.Ctx) error {
 	var id uint = 0
 	auth := utils.GetAuthorizationHeader(c.Context())
 	if auth != nil {
-		idB, err := handler.accessConverter.ParseToken(fastbytes.B2S(auth))
+		idB, err := handler.accessConverter.ParseToken(auth)
 		if err == nil {
 			id = fastbytes.B2U(idB)
 		}
@@ -210,7 +210,7 @@ func (handler *Handler) getCommentsByPostId(c *fiber.Ctx) error {
 	var clientId uint = 0
 	auth := utils.GetAuthorizationHeader(c.Context())
 	if auth != nil {
-		idB, err := handler.accessConverter.ParseToken(fastbytes.B2S(auth))
+		idB, err := handler.accessConverter.ParseToken(auth)
 		if err == nil {
 			clientId = fastbytes.B2U(idB)
 		}
