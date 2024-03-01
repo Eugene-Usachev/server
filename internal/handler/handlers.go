@@ -22,15 +22,15 @@ var (
 type Handler struct {
 	services         *service.Service
 	Logger           *loggerLib.FastLogger
-	accessConverter  *fst.Converter
-	refreshConverter *fst.Converter
+	accessConverter  *fst.EncodedConverter
+	refreshConverter *fst.EncodedConverter
 }
 
 type HandlerConfig struct {
 	Services         *service.Service
 	Logger           *loggerLib.FastLogger
-	AccessConverter  *fst.Converter
-	RefreshConverter *fst.Converter
+	AccessConverter  *fst.EncodedConverter
+	RefreshConverter *fst.EncodedConverter
 }
 
 func NewHandler(cfg *HandlerConfig) *Handler {

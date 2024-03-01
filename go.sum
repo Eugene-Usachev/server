@@ -4,6 +4,8 @@ github.com/Eugene-Usachev/fst v1.2.0 h1:J/rywf8t7vggwBit1jw8YCDUtcQhZMYZ2HqFoIWv
 github.com/Eugene-Usachev/fst v1.2.0/go.mod h1:VLbTj4+HnHH+SiqN16ZBhZQ2mh4ueLePXL7NxvtztrE=
 github.com/Eugene-Usachev/fst v1.3.0 h1:BucgIoJWf4l1ql35Wl5ttX6zFaxB1n0ddCJzeTR5tw8=
 github.com/Eugene-Usachev/fst v1.3.0/go.mod h1:VLbTj4+HnHH+SiqN16ZBhZQ2mh4ueLePXL7NxvtztrE=
+github.com/Eugene-Usachev/fst v1.3.1 h1:1D+nI83ZHhnupBlggWkn1u/pA0Sx9lsfkpIgkosQpoY=
+github.com/Eugene-Usachev/fst v1.3.1/go.mod h1:VLbTj4+HnHH+SiqN16ZBhZQ2mh4ueLePXL7NxvtztrE=
 github.com/Eugene-Usachev/logger v1.2.0 h1:8FijPFwW1a1jAFohfmGs44WpGbjT/L0Ji0Vs+ws1Djg=
 github.com/Eugene-Usachev/logger v1.2.0/go.mod h1:rKyiD58uMVPKHrXp8FxbzSfywBd+76wthIVZXRmUvBA=
 github.com/andybalholm/brotli v1.0.6 h1:Yf9fFpf49Zrxb9NlQaluyE92/+X7UVHlhMNJN2sxfOI=

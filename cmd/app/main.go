@@ -44,19 +44,17 @@ func main() {
 
 	repositoryImpl := repository.NewRepository(repository.NewDataBases(pool, postgresFastLogger, redisClient, redisLogger))
 
-	accessConverter := fst.NewConverter(&fst.ConverterConfig{
-		SecretKey:          fastbytes.S2B(os.Getenv("JWT_SECRET_KEY")),
-		Postfix:            nil,
-		ExpirationTime:     15 * time.Minute,
-		HashType:           sha256.New,
-		WithExpirationTime: true,
+	accessConverter := fst.NewEncodedConverter(&fst.ConverterConfig{
+		SecretKey:      fastbytes.S2B(os.Getenv("JWT_SECRET_KEY")),
+		Postfix:        nil,
+		ExpirationTime: 15 * time.Minute,
+		HashType:       sha256.New,
 	})
-	refreshConverter := fst.NewConverter(&fst.ConverterConfig{
-		SecretKey:          fastbytes.S2B(os.Getenv("JWT_SECRET_KEY_FOR_REFRESH_TOKEN")),
-		Postfix:            nil,
-		ExpirationTime:     31 * time.Hour * 24,
-		HashType:           sha256.New,
-		WithExpirationTime: true,
+	refreshConverter := fst.NewEncodedConverter(&fst.ConverterConfig{
+		SecretKey:      fastbytes.S2B(os.Getenv("JWT_SECRET_KEY_FOR_REFRESH_TOKEN")),
+		Postfix:        nil,
+		ExpirationTime: 31 * time.Hour * 24,
+		HashType:       sha256.New,
 	})
 
 	serviceImpl := service.NewService(&service.Config{

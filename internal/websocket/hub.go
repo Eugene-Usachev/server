@@ -40,10 +40,10 @@ type Hub struct {
 	handler         *Handler
 	logger          *loggerLib.FastLogger
 	clientPool      sync.Pool
-	accessConverter *fst.Converter
+	accessConverter *fst.EncodedConverter
 }
 
-func NewHub(service *service.Service, redisClient rueidis.Client, accessConverter *fst.Converter, logger *loggerLib.FastLogger) *Hub {
+func NewHub(service *service.Service, redisClient rueidis.Client, accessConverter *fst.EncodedConverter, logger *loggerLib.FastLogger) *Hub {
 	InitConfig(logger)
 	self := &Hub{
 		broadcast:       make(chan ParsedRequest),

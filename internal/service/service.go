@@ -105,8 +105,8 @@ type Service struct {
 type Config struct {
 	Repository       *repository.Repository
 	Logger           *logger.FastLogger
-	AccessConverter  *fst.Converter
-	RefreshConverter *fst.Converter
+	AccessConverter  *fst.EncodedConverter
+	RefreshConverter *fst.EncodedConverter
 }
 
 func NewService(cfg *Config) *Service {

@@ -4,7 +4,6 @@ go 1.22
 
 require (
 	github.com/Eugene-Usachev/fastbytes v1.2.0
-	github.com/Eugene-Usachev/fst v1.2.0
 	github.com/Eugene-Usachev/logger v1.2.0
 	github.com/goccy/go-json v0.10.2
 	github.com/gofiber/contrib/websocket v1.3.0
@@ -15,6 +14,7 @@ require (
 	github.com/redis/rueidis v1.0.21
 	github.com/valyala/fasthttp v1.51.0
 	golang.org/x/sync v0.5.0
+	github.com/Eugene-Usachev/fst v1.3.1
 )
 
 require (
