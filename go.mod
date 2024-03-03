@@ -14,7 +14,7 @@ require (
 	github.com/redis/rueidis v1.0.21
 	github.com/valyala/fasthttp v1.51.0
 	golang.org/x/sync v0.5.0
-	github.com/Eugene-Usachev/fst v1.3.1
+	github.com/Eugene-Usachev/fst v1.3.2
 )
 
 require (
